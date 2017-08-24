@@ -1,0 +1,62 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js" crossorigin="anonymous"></script>
+    <script type="text/javascript">
+      function socksOn() {
+        var ws = new WebSocket("{{.WebSocketURI}}");
+        ws.onmessage = function(e) {
+          var msg = JSON.parse(e.data);
+          switch(msg.type) {
+            case "team-info":
+              $("#header-channel").text(msg.channel);
+              $("#header-slack").text(msg.slack);
+              break;
+            case "message":
+              var t = $("#message-template")
+                .clone()
+                .attr("id", "")
+                .data("message", msg.message.ts);
+
+              t.find('.card-title').text(msg.message.user);
+              t.find('.card-text').text(msg.message.text);
+              var ts = moment(msg.message.ts * 1000) // epoch;
+              t.find('.card-subtitle').text(ts.format());
+
+              t
+                .show()
+                .appendTo($('.messages'));
+              break;  
+            default:
+              console.log("Unhandled message", msg);
+          }
+        };
+      }
+      socksOn(); 
+    </script>
+</head>
+<body>
+	<div class="container">
+    <div class="header" style='border-bottom: 1px solid #eee'>
+      <h3 class="text-muted"><span id='header-slack'></span> Slack <small>(read only)</small></h3>
+      <h4 class="text-muted"><span id='header-channel'></span></h4>
+    </div>
+    <div class="messages">
+			<div class="card" style='display:none;margin-top:5px' id='message-template'>
+				<div class="card-block" style='padding:.5rem'>
+					<h4 class="card-title">Card title</h4>
+					<h6 class="card-subtitle mb-2 text-muted">Card subtitle</h6>
+					<p class="card-text"></p>
+					<!--a href="#" class="card-link">Card link</a-->
+					<!--a href="#" class="card-link">Another link</a-->
+				</div>
+			</div>
+    </div>
+	</div>
+</body>
+
+</html>
