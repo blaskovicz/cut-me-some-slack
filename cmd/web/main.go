@@ -101,12 +101,11 @@ func main() {
 	go rtm.ManageConnection()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		wsProto := "ws"
-		if r.URL.Scheme == "https" {
-			wsProto += "s"
-		}
 		wsDomain := os.Getenv("HEROKU_APP_DOMAIN")
 		if wsDomain == "" {
 			wsDomain = fmt.Sprintf("localhost:%s", port)
+		} else {
+			wsProto += "s"
 		}
 
 		err := indexTemplate.Execute(w, struct{ WebSocketURI string }{WebSocketURI: fmt.Sprintf("%s://%s/stream", wsProto, wsDomain)})
