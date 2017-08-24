@@ -1,0 +1,24 @@
+{
+	"ImportPath": "github.com/blaskovicz/cut-me-some-slack",
+	"GoVersion": "go1.8",
+	"GodepVersion": "v79",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/gorilla/websocket",
+			"Comment": "v1.2.0-6-ga69d9f6",
+			"Rev": "a69d9f6de432e2c6b296a947d8a5ee88f68522cf"
+		},
+		{
+			"ImportPath": "github.com/nlopes/slack",
+			"Comment": "v0.1.0-10-g5cde21b",
+			"Rev": "5cde21b8b96a43fc3435a1f514123d14fd7eabdc"
+		},
+		{
+			"ImportPath": "golang.org/x/net/websocket",
+			"Rev": "1c05540f6879653db88113bc4a2b70aec4bd491f"
+		}
+	]
+}
