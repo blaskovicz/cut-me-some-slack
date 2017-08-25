@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"crypto/md5"
 	"fmt"
 	"log"
 
@@ -13,8 +14,11 @@ type Hub struct {
 	// Registered clients.
 	clients map[*Client]bool
 
-	// Inbound messages from the clients.
+	// Inbound messages from slack to the clients.
 	broadcast chan []byte
+
+	// Inbound messages from clients to slack
+	inbox chan *ClientMessage
 
 	// Register requests from the clients.
 	register chan *Client
@@ -34,6 +38,7 @@ type Hub struct {
 func NewHub(slackToken, allowedChannels string) (*Hub, error) {
 	h := &Hub{
 		slack:      slack.New(slackToken),
+		inbox:      make(chan *ClientMessage),
 		broadcast:  make(chan []byte),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
@@ -87,13 +92,15 @@ func (h *Hub) Run() {
 		case client := <-h.register:
 			h.clients[client] = true
 			log.Println("client registered.")
-			client.send <- h.welcomePayload()
+			client.send <- h.welcomePayload(client)
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				log.Println("client unregistered.")
 				delete(h.clients, client)
 				close(client.send)
 			}
+		case message := <-h.inbox:
+			h.handleInbox(message)
 		case message := <-h.broadcast:
 			// mux message to all clients
 			log.Printf("flushing broadcast.")
@@ -109,8 +116,28 @@ func (h *Hub) Run() {
 	}
 }
 
-func (h *Hub) welcomePayload() []byte {
-	return EncodeWelcomePayload(h.slackInfo, h.slackChannel)
+func (h *Hub) handleInbox(c *ClientMessage) {
+	// log.Printf("got message from client %s: %s.", c.Client.Username, string(c.Raw))
+	m, err := DecodeClientMessage(c)
+	if err != nil {
+		log.Printf("error: %s\n", err)
+		return
+	}
+	if m == "" {
+		return
+	}
+	log.Printf("sending as client %s: %s.", c.Client.Username, m)
+	gravatarURL := fmt.Sprintf("https://www.gravatar.com/avatar/%x?d=retro", md5.Sum([]byte(c.Client.Username)))
+	_, _, err = h.slack.PostMessage(h.slackChannel.ID, m, slack.PostMessageParameters{
+		Username: c.Client.Username,
+		IconURL:  gravatarURL,
+	})
+	if err != nil {
+		log.Printf("error: %s\n", err)
+	}
+}
+func (h *Hub) welcomePayload(c *Client) []byte {
+	return EncodeWelcomePayload(h.slackInfo, h.slackChannel, c.Username)
 }
 func (h *Hub) handleSlackEvent(msg slack.RTMEvent) {
 	switch ev := msg.Data.(type) {
@@ -129,7 +156,11 @@ func (h *Hub) handleSlackEvent(msg slack.RTMEvent) {
 		// rtm.SendMessage(rtm.NewOutgoingMessage("<slack connected>", channel.ID))
 
 	case *slack.MessageEvent:
-		if ev.Channel != h.slackChannel.ID || ev.SubType != "" { // TODO
+		if ev.Channel != h.slackChannel.ID { // TODO
+			//log.Printf("dropping %#v", ev)
+			break
+		} else if ev.SubType != "" && ev.SubType != "bot_message" {
+			log.Printf("dropping %#v", ev)
 			break
 		}
 		h.broadcast <- EncodeMessageEvent(h.slack, (*slack.MessageEvent)(ev))

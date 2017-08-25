@@ -2,10 +2,12 @@ package chat
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
 
+	randomdata "github.com/Pallinder/go-randomdata"
 	"github.com/gorilla/websocket"
 )
 
@@ -42,6 +44,13 @@ type Client struct {
 
 	// Buffered channel of outbound messages.
 	send chan []byte
+
+	Username string // TODO oauth/auth0
+}
+
+type ClientMessage struct {
+	Raw    []byte
+	Client *Client
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -66,9 +75,8 @@ func (c *Client) readPump() {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		log.Printf("client said: %s\n", string(message))
-		// TODO for posting
-		//c.hub.broadcast <- message
+
+		c.hub.inbox <- &ClientMessage{message, c}
 	}
 }
 
@@ -125,7 +133,12 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
+	client := &Client{
+		Username: fmt.Sprintf("%s-%s-%d", randomdata.Adjective(), randomdata.Noun(), randomdata.Number(5000)),
+		hub:      hub,
+		conn:     conn,
+		send:     make(chan []byte, 256),
+	}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in
