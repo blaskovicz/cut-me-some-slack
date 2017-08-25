@@ -13,26 +13,38 @@ type teamMessage struct {
 	Slack   string `json:"slack"`
 	Channel string `json:"channel"`
 }
+type chatUserMessage struct {
+	Username string `json:"username"`
+	Avatar   string `json:"avatar_url"`
+	// we have to be careful not to leak private fields
+}
 type chatMessage struct {
-	Type    string              `json:"type"`
-	Message *slack.MessageEvent `json:"message"`
+	Type string           `json:"type"`
+	Ts   string           `json:"ts"`
+	Text string           `json:"text"`
+	User *chatUserMessage `json:"user"`
+}
+
+func encode(m interface{}) []byte {
+	var buff bytes.Buffer
+	err := json.NewEncoder(&buff).Encode(m)
+	if err != nil {
+		log.Printf("encode error: %s\n", err)
+		return nil
+	}
+	return buff.Bytes()
 }
 
 func EncodeWelcomePayload(teamInfo *slack.Info, channel *slack.Channel) []byte {
-	var buff bytes.Buffer
-	err := json.NewEncoder(&buff).Encode(teamMessage{Slack: teamInfo.Team.Name, Type: "team-info", Channel: "#" + channel.Name})
-	if err != nil {
-		log.Printf("error: %s\n", err)
-		return nil
-	}
-	return buff.Bytes()
+	tm := teamMessage{Slack: teamInfo.Team.Name, Type: "team-info", Channel: "#" + channel.Name}
+	return encode(tm)
+
 }
-func EncodeMessageEvent(m *slack.MessageEvent) []byte {
-	var buff bytes.Buffer
-	err := json.NewEncoder(&buff).Encode(chatMessage{Type: "message", Message: m})
-	if err != nil {
-		log.Printf("error: %s\n", err)
-		return nil
+func EncodeMessageEvent(c *slack.Client, m *slack.MessageEvent) []byte {
+	cm := chatMessage{Type: "message", Ts: m.Timestamp, Text: m.Text}
+	u, err := c.GetUserInfo(m.User)
+	if err == nil {
+		cm.User = &chatUserMessage{Username: u.Name, Avatar: u.Profile.ImageOriginal} // TODO cache / prelim prime with user list
 	}
-	return buff.Bytes()
+	return encode(cm)
 }

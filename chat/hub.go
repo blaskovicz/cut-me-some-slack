@@ -80,6 +80,7 @@ func (h *Hub) runSlack() {
 
 func (h *Hub) Run() {
 	go h.runSlack()
+	// TODO wait until we get the welcome payload or else risk panic
 
 	for {
 		select {
@@ -131,11 +132,7 @@ func (h *Hub) handleSlackEvent(msg slack.RTMEvent) {
 		if ev.Channel != h.slackChannel.ID || ev.SubType != "" { // TODO
 			break
 		}
-		u, err := h.slack.GetUserInfo(ev.User)
-		if err == nil {
-			ev.User = u.Name // TODO cache / prelim prime with user list
-		}
-		h.broadcast <- EncodeMessageEvent((*slack.MessageEvent)(ev))
+		h.broadcast <- EncodeMessageEvent(h.slack, (*slack.MessageEvent)(ev))
 
 	/*case *slack.PresenceChangeEvent:
 	    fmt.Printf("Presence Change: %v\n", ev)
