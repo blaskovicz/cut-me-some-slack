@@ -21,7 +21,7 @@ func startStreamFunc(hub *chat.Hub) func(w http.ResponseWriter, r *http.Request)
 func serveHomeFunc(port string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("serving /")
-		indexFile, err := os.Open("cmd/chat/index.html")
+		indexFile, err := os.Open("cmd/cut-me-some-slack/index.html")
 		if err != nil {
 			log.Printf("error: %s\n", err)
 			http.Error(w, "Server Error", 500)
