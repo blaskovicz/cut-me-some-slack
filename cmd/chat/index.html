@@ -9,6 +9,17 @@
     <script type="text/javascript">
       function socksOn() {
         var ws = new WebSocket("{{.WebSocketURI}}");
+        ws.onclose = function(e) {
+          var t = $("#message-template")
+            .clone()
+            .attr("id", "");
+          t.find('.card-title').text('<system>');
+          t.find('.card-text').text('connection closed.');
+          t.find('.card-subtitle').text(moment().format());
+          t
+            .show()
+            .appendTo($('.messages'));
+        };
         ws.onmessage = function(e) {
           var msg = JSON.parse(e.data);
           switch(msg.type) {
@@ -22,8 +33,8 @@
                 .attr("id", "")
                 .data("message", msg.message.ts);
 
-              t.find('.card-title').text(msg.message.user);
-              t.find('.card-text').text(msg.message.text);
+              t.find('.card-title').text(msg.message.user || '');
+              t.find('.card-text').text(msg.message.text || '');
               var ts = moment(msg.message.ts * 1000) // epoch;
               t.find('.card-subtitle').text(ts.format());
 
