@@ -1,5 +1,5 @@
 # Cut Me Some Slack!
-> Anonymous Slack web portal.
+> Anonymous Slack web portal. Read and write messages, help-desk style.
 
 ## Deploying
 
