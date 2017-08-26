@@ -35,9 +35,9 @@ type Hub struct {
 	slackInfo *slack.Info
 }
 
-func NewHub(slackToken, allowedChannels string) (*Hub, error) {
+func NewHub(cfg *Config) (*Hub, error) {
 	h := &Hub{
-		slack:      slack.New(slackToken),
+		slack:      slack.New(cfg.Slack.Token),
 		inbox:      make(chan *ClientMessage),
 		broadcast:  make(chan []byte),
 		register:   make(chan *Client),
@@ -49,7 +49,7 @@ func NewHub(slackToken, allowedChannels string) (*Hub, error) {
 	//slack.SetLogger(logger)
 	//api.SetDebug(true)
 
-	err := h.loadSlackInfo(allowedChannels)
+	err := h.loadSlackInfo(cfg.Slack.AllowedChannels)
 	if err != nil {
 		return nil, err
 	}

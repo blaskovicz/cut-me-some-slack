@@ -7,6 +7,11 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/BurntSushi/toml",
+			"Comment": "v0.2.0-21-g9906417",
+			"Rev": "99064174e013895bbd9b025c31100bd1d9b590ca"
+		},
+		{
 			"ImportPath": "github.com/Pallinder/go-randomdata",
 			"Rev": "8c3362a5e6781e0d1046f1267b3c1f19b2cde334"
 		},
@@ -16,6 +21,15 @@
 			"Rev": "a69d9f6de432e2c6b296a947d8a5ee88f68522cf"
 		},
 		{
+			"ImportPath": "github.com/jinzhu/configor",
+			"Rev": "6c409036e1aea1420f2e1a196f95c0e3c4aef091"
+		},
+		{
+			"ImportPath": "github.com/joho/godotenv",
+			"Comment": "v1.1-23-gc9360df",
+			"Rev": "c9360df4d16dc0e391ea2f28da2d31a9ede2e26f"
+		},
+		{
 			"ImportPath": "github.com/nlopes/slack",
 			"Comment": "v0.1.0-10-g5cde21b",
 			"Rev": "5cde21b8b96a43fc3435a1f514123d14fd7eabdc"
@@ -23,6 +37,10 @@
 		{
 			"ImportPath": "golang.org/x/net/websocket",
 			"Rev": "1c05540f6879653db88113bc4a2b70aec4bd491f"
+		},
+		{
+			"ImportPath": "gopkg.in/yaml.v2",
+			"Rev": "a3f3340b5840cee44f372bddb5880fcbc419b46a"
 		}
 	]
 }

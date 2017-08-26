@@ -18,7 +18,7 @@ func startStreamFunc(hub *chat.Hub) func(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func serveHomeFunc(port string) func(w http.ResponseWriter, r *http.Request) {
+func serveHomeFunc(cfg *chat.Config) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("serving /")
 		indexFile, err := os.Open("cmd/cut-me-some-slack/index.html")
@@ -41,9 +41,9 @@ func serveHomeFunc(port string) func(w http.ResponseWriter, r *http.Request) {
 		}
 
 		wsProto := "ws"
-		wsDomain := os.Getenv("HEROKU_APP_DOMAIN")
-		if wsDomain == "" {
-			wsDomain = fmt.Sprintf("localhost:%s", port)
+		wsDomain := cfg.Server.Domain
+		if wsDomain == "localhost" {
+			wsDomain += fmt.Sprintf(":%d", cfg.Server.Port)
 		} else {
 			wsProto += "s"
 		}
@@ -59,33 +59,24 @@ func serveHomeFunc(port string) func(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// load env
-	slackToken := os.Getenv("SLACK_TOKEN") // TODO validate scopes
-	if slackToken == "" {
-		panic("env.SLACK_TOKEN cannot be empty")
-	}
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "3000"
-	}
-
-	allowedChannels := os.Getenv("SLACK_CHANNEL")
-	if allowedChannels == "" {
-		allowedChannels = "api-testing"
+	cfg, err := chat.LoadConfig()
+	if err != nil {
+		log.Fatal("Failed to load config: ", err)
 	}
 
 	// start hub
-	hub, err := chat.NewHub(slackToken, allowedChannels)
+	hub, err := chat.NewHub(cfg)
 	if err != nil {
 		log.Fatal("Failed to launch hub: %s", err)
 	}
 	go hub.Run()
 
 	// start server
-	http.HandleFunc("/", serveHomeFunc(port))
+	http.HandleFunc("/", serveHomeFunc(cfg))
 	http.HandleFunc("/stream", startStreamFunc(hub))
-	log.Printf("starting server on :%s", port)
-	err = http.ListenAndServe(":"+port, nil)
+	listenAddr := fmt.Sprintf(":%d", cfg.Server.Port)
+	log.Printf("starting server on %s", listenAddr)
+	err = http.ListenAndServe(listenAddr, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
