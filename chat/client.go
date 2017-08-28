@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	randomdata "github.com/Pallinder/go-randomdata"
@@ -33,6 +35,17 @@ var (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+
+	// by default, our upgrader doesn't allow any origin header.
+	// we do the same, but extend to also support localhost
+	CheckOrigin: func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true
+		}
+		originURL, err := url.Parse(origin)
+		return (err == nil && strings.HasPrefix(originURL.Host, "localhost:"))
+	},
 }
 
 // Client is a middleman between the websocket connection and the hub.

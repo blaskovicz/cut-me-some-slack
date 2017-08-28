@@ -1,6 +1,27 @@
 # Cut Me Some Slack!
 > Anonymous Slack web portal. Read and write messages, help-desk style.
 
+
+## Developing
+
+### Frontend
+
+To start the React development server:
+
+```
+$ cd ui/
+$ yarn install
+$ PORT=3001 yarn start
+```
+
+### Backend
+
+To start the Golang backend:
+
+```
+$ go run cmd/cut-me-some-slack/main.go
+```
+
 ## Deploying
 
 ```

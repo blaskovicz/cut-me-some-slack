@@ -1,8 +1,19 @@
 {
-  "name": "cut-me-some-slack",
-  "version": "1.0.0",
-  "main": "index.js",
-  "repository": "https://github.com/blaskovicz/cut-me-some-slack",
-  "author": "Zach Auclair <zach101@gmail.com>",
-  "license": "MIT"
+  "name": "ui",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "moment": "^2.18.1",
+    "prop-types": "^15.5.10",
+    "react": "^15.6.1",
+    "react-dom": "^15.6.1",
+    "react-scripts": "1.0.11"
+  },
+  "scripts": {
+    "start": "cd ui && react-scripts start",
+    "build": "cd ui && react-scripts build",
+    "test": "cd ui && react-scripts test --env=jsdom",
+    "eject": "cd ui && react-scripts eject",
+    "postinstall": "yarn build"
+  }
 }
