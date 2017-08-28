@@ -8,15 +8,10 @@ import (
 	"github.com/blaskovicz/cut-me-some-slack/chat"
 )
 
-func startStreamFunc(hub *chat.Hub) func(w http.ResponseWriter, r *http.Request) {
+func startStreamFunc(cfg *chat.Config, hub *chat.Hub) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("serving /stream")
-		chat.ServeWs(hub, w, r)
-	}
-}
-
-func serveStaticFunc(cfg *chat.Config) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+		chat.ServeWs(cfg, hub, w, r)
 	}
 }
 
@@ -35,7 +30,7 @@ func main() {
 	go hub.Run()
 
 	// start server
-	http.HandleFunc("/stream", startStreamFunc(hub))
+	http.HandleFunc("/stream", startStreamFunc(cfg, hub))
 	http.Handle("/", http.FileServer(http.Dir("ui/build")))
 
 	listenAddr := fmt.Sprintf(":%d", cfg.Server.Port)

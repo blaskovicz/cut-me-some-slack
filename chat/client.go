@@ -32,20 +32,23 @@ var (
 	space   = []byte{' '}
 )
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
+func newWsUpgrader(cfg *Config) *websocket.Upgrader {
+	return &websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
 
-	// by default, our upgrader doesn't allow any origin header.
-	// we do the same, but extend to also support localhost
-	CheckOrigin: func(r *http.Request) bool {
-		origin := r.Header.Get("Origin")
-		if origin == "" {
-			return true
-		}
-		originURL, err := url.Parse(origin)
-		return (err == nil && strings.HasPrefix(originURL.Host, "localhost:"))
-	},
+		// by default, our upgrader doesn't allow any origin header.
+		// we do the same, but extend to also support localhost or our app domain
+		CheckOrigin: func(r *http.Request) bool {
+			origin := r.Header.Get("Origin")
+			if origin == "" {
+				return true
+			}
+			originURL, err := url.Parse(origin)
+			return err == nil && (strings.HasPrefix(originURL.Host, "localhost:") || originURL.Host == cfg.Server.Domain)
+
+		},
+	}
 }
 
 // Client is a middleman between the websocket connection and the hub.
@@ -140,8 +143,8 @@ func (c *Client) writePump() {
 }
 
 // serveWs handles websocket requests from the peer.
-func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
+func ServeWs(cfg *Config, hub *Hub, w http.ResponseWriter, r *http.Request) {
+	conn, err := newWsUpgrader(cfg).Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
 		return
