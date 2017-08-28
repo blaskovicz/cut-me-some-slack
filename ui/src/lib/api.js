@@ -78,10 +78,14 @@ class Api {
         });
     }
     onMessage(e) {
-        var msg = JSON.parse(e.data);
-        this.listeners.forEach((l) => {
-            let f = l.onMessage;
-            if (typeof f === 'function') f(msg);
+        if (typeof e.data !== 'string') return;
+        e.data.split('\n').forEach((rawMessage) => {
+            if (rawMessage === '') return;
+            let msg = JSON.parse(rawMessage);
+            this.listeners.forEach((l) => {
+                let f = l.onMessage;
+                if (typeof f === 'function') f(msg);
+            });
         });
     }
     onClose(...args) {

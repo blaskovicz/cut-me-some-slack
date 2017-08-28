@@ -93,6 +93,9 @@ func (h *Hub) Run() {
 			h.clients[client] = true
 			log.Println("client registered.")
 			client.send <- h.welcomePayload(client)
+			for _, m := range h.previousMessages() {
+				client.send <- m
+			}
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				log.Println("client unregistered.")
@@ -135,6 +138,29 @@ func (h *Hub) handleInbox(c *ClientMessage) {
 	if err != nil {
 		log.Printf("error: %s\n", err)
 	}
+}
+func (h *Hub) previousMessages() [][]byte {
+	previous := [][]byte{}
+	history, err := h.slack.GetChannelHistory(h.slackChannel.ID, slack.NewHistoryParameters())
+	if err != nil {
+		log.Printf("error: %s\n", err)
+		return previous
+	}
+	if history.Messages == nil {
+		return previous
+	}
+
+	// push oldest -> newest
+	for i := len(history.Messages) - 1; i >= 0; i-- {
+		m := history.Messages[i]
+		// TODO
+		if m.SubType != "" && m.SubType != "bot_message" {
+			//log.Printf("dropping %#v", ev)
+			continue
+		}
+		previous = append(previous, EncodeMessageEvent(h.slack, (*slack.MessageEvent)(&m)))
+	}
+	return previous
 }
 func (h *Hub) welcomePayload(c *Client) []byte {
 	return EncodeWelcomePayload(h.slackInfo, h.slackChannel, c.Username)

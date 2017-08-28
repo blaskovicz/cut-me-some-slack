@@ -69,6 +69,14 @@ export default class Room extends Component {
                 break;
             case 'message':
                 const { messages } = this.state;
+                // TODO edits, emoji, deletes, sorting, etc
+
+                // we got an invalid or old message, drop it.
+                if (!msg.ts) return;
+                if (messages.length !== 0 && +(messages[messages.length-1].ts) > +msg.ts){
+                    console.log("Dropping old message", msg);
+                    return;
+                }
                 messages.push(msg);
                 this.setState({
                     messages,
@@ -102,7 +110,7 @@ export default class Room extends Component {
                                 <div style={{float: 'left'}}>
                                     <h4 className="card-title">{msg.user ? msg.user.username : ''}</h4>
                                     <h6 className="card-subtitle mb-2 text-muted">
-                                        {msg.ts ? moment(msg.ts * 1000).format() : ''}
+                                        {moment(msg.ts * 1000).format()}
                                     </h6>
                                     {/* TODO links, sigils and whatnot */}
                                     <p className="card-text" style={{overflow: 'auto'}}>{msg.text || ''}</p>
