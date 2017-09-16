@@ -221,7 +221,7 @@ export default class Room extends Component {
         <div style={{ height: '50px', position: 'fixed', left: '0', bottom: '0', right: '0', zIndex: 1, background: '#fff' }} className="container">
           <div id="message-new-controls">
             <input
-              style={{ display: 'inline-block', width: '80%' }}
+              style={{ display: 'inline-block', width: '80%', verticalAlign: 'top' }}
               onKeyPress={handleEnter}
               value={outboundMessage}
               onChange={handleChange}
@@ -231,7 +231,7 @@ export default class Room extends Component {
               id="message-text"
             />
             <button
-              style={{ width: '20%' }}
+              style={{ width: '20%', verticalAlign: 'top' }}
               disabled={outboundMessage === ''}
               id="message-submit"
               type="button"
