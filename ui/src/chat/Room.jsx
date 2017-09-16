@@ -22,6 +22,7 @@ export default class Room extends Component {
         channels: {},
         emoji: {},
       },
+      messageTs: '',
       messages: [],
     };
 
@@ -37,15 +38,22 @@ export default class Room extends Component {
     })());
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps, prevState) {
+    const prevMessageTs = prevState.messageTs;
+    const { messageTs } = this.state;
+    // if we didn't append a message to our list, don't scroll
+    if (messageTs === prevMessageTs) {
+      // console.log('[room] state changed but messageTs is the same');
+      return;
+    }
     const [, y] = getScroll();
     // if user is 85% or greater scrolled to the bottom, give them the new message...
     const scrollPerc = (100 / document.body.scrollHeight) * y;
     if (scrollPerc >= 85) {
       // console.log(`[room] scrolling to bottom (scrolled ${scrollPerc})`);
-      /* eslint-disable no-restricted-globals */
-      scrollTo(0, document.body.scrollHeight);
-      /* eslint-enable no-restricted-globals */
+      window.scrollTo(0, document.body.scrollHeight);
+    } else {
+      // console.log(`[room] skipping scroll ${scrollPerc}`);
     }
   }
 
@@ -69,6 +77,7 @@ export default class Room extends Component {
     const { outboundMessage } = this.state;
     if (outboundMessage === '') return;
     Api.sendMessage(outboundMessage);
+    window.scrollTo(0, document.body.scrollHeight);
     this.setState({ outboundMessage: '' });
   }
 
@@ -111,6 +120,7 @@ export default class Room extends Component {
         }
         messages.push(msg);
         this.setState({
+          messageTs: msg.ts,
           messages,
         });
         break;
@@ -151,7 +161,7 @@ export default class Room extends Component {
         <div style={{ height: '50px', position: 'fixed', left: '0', bottom: '0', right: '0', zIndex: 1, background: '#fff' }} className="container">
           <div id="message-new-controls">
             <input
-              style={{ display: 'inline-block', width: '90%' }}
+              style={{ display: 'inline-block', width: '80%' }}
               onKeyPress={handleEnter}
               value={outboundMessage}
               onChange={handleChange}
@@ -161,11 +171,11 @@ export default class Room extends Component {
               id="message-text"
             />
             <button
-              style={{ width: '10%' }}
+              style={{ width: '20%' }}
               disabled={outboundMessage === ''}
               id="message-submit"
               type="button"
-              className="btn btn-primary"
+              className={`btn btn-${outboundMessage === '' ? 'secondary' : 'primary'}`}
               onClick={pushOutboundMessage}
             >
               Send
