@@ -1,0 +1,79 @@
+{
+  "name": "cut-me-some-slack",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "babel-eslint": "^6.1.2",
+    "emojione": "^3.1.2",
+    "eslint": "^3.11.1",
+    "eslint-config-airbnb": "^13.0.0",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx-a11y": "^2.2.3",
+    "eslint-plugin-react": "^6.8.0",
+    "moment": "^2.18.1",
+    "prop-types": "^15.5.10",
+    "react": "^15.6.1",
+    "react-dom": "^15.6.1",
+    "react-markdown": "^2.5.0",
+    "react-scripts": "1.0.11"
+  },
+  "scripts": {
+    "start": "cd ui && react-scripts start",
+    "build": "cd ui && react-scripts build",
+    "test": "cd ui && react-scripts test --env=jsdom",
+    "eject": "cd ui && react-scripts eject",
+    "postinstall": "yarn build"
+  },
+  "eslintConfig": {
+    "extends": "airbnb",
+    "parser": "babel-eslint",
+    "rules": {
+      "max-len": [
+        "off"
+      ],
+      "import/no-extraneous-dependencies": [
+        "error",
+        {
+          "devDependencies": true
+        }
+      ],
+      "react/jsx-filename-extension": [
+        1,
+        {
+          "extensions": [
+            ".js",
+            ".jsx"
+          ]
+        }
+      ],
+      "react/forbid-prop-types": [
+        "error",
+        {
+          "forbid": [
+            "any"
+          ]
+        }
+      ],
+      "react/prefer-stateless-function": [
+        "off"
+      ],
+      "jsx-a11y/no-static-element-interactions": [
+        "off"
+      ],
+      "linebreak-style": [
+        "off"
+      ],
+      "arrow-parens": [
+        "error",
+        "as-needed"
+      ],
+      "import/no-named-default": [
+        "off"
+      ]
+    },
+    "env": {
+      "browser": true,
+      "jest": true
+    }
+  }
+}
