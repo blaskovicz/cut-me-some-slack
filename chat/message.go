@@ -11,21 +11,28 @@ import (
 )
 
 type teamMessage struct {
-	Type     string `json:"type"`
-	Slack    string `json:"slack"`
-	Channel  string `json:"channel"`
-	Username string `json:"username"`
+	Type     string        `json:"type"`
+	Slack    string        `json:"slack"`
+	Channel  string        `json:"channel"`
+	Username string        `json:"username"`
+	Users    []chatUser    `json:"users"`
+	Channels []chatChannel `json:"channels"`
 }
-type chatUserMessage struct {
+type chatChannel struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+type chatUser struct {
+	ID       string `json:"id"`
 	Username string `json:"username"`
 	Avatar   string `json:"avatar_url"`
 	// we have to be careful not to leak private fields
 }
 type chatMessage struct {
-	Type string           `json:"type"`
-	Ts   string           `json:"ts"`
-	Text string           `json:"text"`
-	User *chatUserMessage `json:"user"`
+	Type string    `json:"type"`
+	Ts   string    `json:"ts"`
+	Text string    `json:"text"`
+	User *chatUser `json:"user"`
 }
 
 func encode(m interface{}) []byte {
@@ -51,7 +58,26 @@ func DecodeClientMessage(c *ClientMessage) (string, error) {
 	return "", nil
 }
 func EncodeWelcomePayload(teamInfo *slack.Info, channel *slack.Channel, username string) []byte {
-	tm := teamMessage{Slack: teamInfo.Team.Name, Type: "team-info", Channel: "#" + channel.Name, Username: "@" + username}
+	channels := []chatChannel{}
+	if teamInfo.Channels != nil {
+		for _, c := range teamInfo.Channels {
+			channels = append(channels, chatChannel{ID: c.ID, Name: c.Name})
+		}
+	}
+	users := []chatUser{}
+	if teamInfo.Users != nil {
+		for _, u := range teamInfo.Users {
+			users = append(users, chatUser{Username: u.Name, Avatar: u.Profile.ImageOriginal, ID: u.ID})
+		}
+	}
+	tm := teamMessage{
+		Slack:    teamInfo.Team.Name,
+		Type:     "team-info",
+		Channel:  channel.Name,
+		Username: username,
+		Users:    users,
+		Channels: channels,
+	}
 	return encode(tm)
 
 }
@@ -60,11 +86,11 @@ func EncodeMessageEvent(c *slack.Client, m *slack.MessageEvent) []byte {
 	// TODO ask for users/sigils over the wire
 	if m.SubType == "bot_message" {
 		gravatarURL := fmt.Sprintf("https://www.gravatar.com/avatar/%x?d=retro", md5.Sum([]byte(m.Username)))
-		cm.User = &chatUserMessage{Username: m.Username, Avatar: gravatarURL}
+		cm.User = &chatUser{Username: m.Username, Avatar: gravatarURL}
 	} else {
 		u, err := c.GetUserInfo(m.User)
 		if err == nil {
-			cm.User = &chatUserMessage{Username: u.Name, Avatar: u.Profile.ImageOriginal} // TODO cache / prelim prime with user list
+			cm.User = &chatUser{Username: u.Name, Avatar: u.Profile.ImageOriginal, ID: u.ID} // TODO cache / prelim prime with user list
 		}
 	}
 	return encode(cm)
