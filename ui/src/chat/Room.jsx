@@ -17,6 +17,9 @@ export default class Room extends Component {
         channel: '',
         slack: '', // team
         username: '',
+        users: {},
+        channels: {},
+        emoji: {},
       },
       messages: [],
     };
@@ -59,11 +62,22 @@ export default class Room extends Component {
   handleMessage(msg) {
     switch (msg.type) {
       case 'team-info': {
+        const channels = {};
+        msg.channels.forEach(c => {
+          channels[c.id] = c;
+        });
+        const users = {};
+        msg.users.forEach(u => {
+          users[u.id] = u;
+        });
         this.setState({
           slack: {
             channel: msg.channel,
             slack: msg.slack,
             username: msg.username,
+            users,
+            channels,
+            emoji: msg.emoji,
           },
         });
         break;
@@ -98,33 +112,54 @@ export default class Room extends Component {
 
   render() {
     const { handleChange, pushOutboundMessage, handleEnter } = this;
-    const { slack: { channel, slack, username }, messages, outboundMessage, connectionState, connectionChangeTime } = this.state;
+    const { slack: { channel, slack, emoji, username, users, channels }, messages, outboundMessage, connectionState, connectionChangeTime } = this.state;
     return (
-      <div className="container">
-        <div className="header" style={{ borderBottom: '1px solid #eee' }}>
-          <h3 className="text-muted"><span id="header-slack">{slack}</span> Slack</h3>
-          <h4 className="text-muted"><span id="header-channel">{channel}</span></h4>
-          <h4 className="text-muted"><span id="header-username">{username}</span></h4>
-        </div>
-        <div className="messages" style={{ marginBottom: '20px' }}>
-          {messages.map(msg => <Message key={msg.ts} msg={msg} />)}
-          {(connectionState !== null && connectionState !== WebSocket.OPEN) ?
-            <div className="alert alert-warning" role="alert">
-              <i>Re-establishing connection to Slack (since {connectionChangeTime.format()}).</i>
-            </div> : ''
-          }
-        </div>
-        <div id="message-new-controls">
-          <div className="form-group row">
-            <div className="col-11">
-              <input onKeyPress={handleEnter} value={outboundMessage} onChange={handleChange} name="outboundMessage" type="text" className="form-control" id="message-text" />
-            </div>
-            <div className="col-1">
-              <button disabled={outboundMessage === ''} id="message-submit" type="button" className="btn btn-primary" onClick={pushOutboundMessage}>Send</button>
-            </div>
+      <div>
+        <div style={{ position: 'sticky', left: '0', top: '0', right: '0', zIndex: 1, background: '#fff' }} className="container">
+          <div className="header" style={{ borderBottom: '1px solid #eee' }}>
+            <h4 className="text-muted"><span id="header-slack">{slack}</span> Slack</h4>
+            <h5 className="text-muted">
+              <span id="header-username">@{username}</span>{' in '}
+              <span id="header-channel">#{channel}</span>
+            </h5>
           </div>
         </div>
-      </div>
+        <div style={{ paddingBottom: '40px', paddingTop: '40px' }} className="container">
+          <div className="messages" style={{ marginBottom: '20px' }}>
+            {messages.map(msg =>
+              <Message emoji={emoji} key={msg.ts} users={users} channels={channels} msg={msg} />)}
+            {(connectionState !== null && connectionState !== WebSocket.OPEN) ?
+              <div className="alert alert-warning" role="alert">
+                <i>Re-establishing connection to Slack (since {connectionChangeTime.format()}).</i>
+              </div> : ''
+            }
+          </div>
+        </div>
+        <div style={{ height: '50px', position: 'fixed', left: '0', bottom: '0', right: '0', zIndex: 1, background: '#fff' }} className="container">
+          <div id="message-new-controls">
+            <input
+              style={{ display: 'inline-block', width: '90%' }}
+              onKeyPress={handleEnter}
+              value={outboundMessage}
+              onChange={handleChange}
+              name="outboundMessage"
+              type="text"
+              className="form-control"
+              id="message-text"
+            />
+            <button
+              style={{ width: '10%' }}
+              disabled={outboundMessage === ''}
+              id="message-submit"
+              type="button"
+              className="btn btn-primary"
+              onClick={pushOutboundMessage}
+            >
+              Send
+            </button>
+          </div>
+        </div>
+      </div >
     );
   }
 }
