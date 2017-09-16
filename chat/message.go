@@ -11,12 +11,13 @@ import (
 )
 
 type teamMessage struct {
-	Type     string        `json:"type"`
-	Slack    string        `json:"slack"`
-	Channel  string        `json:"channel"`
-	Username string        `json:"username"`
-	Users    []chatUser    `json:"users"`
-	Channels []chatChannel `json:"channels"`
+	Type     string            `json:"type"`
+	Slack    string            `json:"slack"`
+	Channel  string            `json:"channel"`
+	Username string            `json:"username"`
+	Users    []chatUser        `json:"users"`
+	Channels []chatChannel     `json:"channels"`
+	Emoji    map[string]string `json:"emoji"`
 }
 type chatChannel struct {
 	ID   string `json:"id"`
@@ -57,7 +58,7 @@ func DecodeClientMessage(c *ClientMessage) (string, error) {
 	}
 	return "", nil
 }
-func EncodeWelcomePayload(teamInfo *slack.Info, channel *slack.Channel, username string) []byte {
+func EncodeWelcomePayload(teamInfo *slack.Info, channel *slack.Channel, customEmoji map[string]string, username string) []byte {
 	channels := []chatChannel{}
 	if teamInfo.Channels != nil {
 		for _, c := range teamInfo.Channels {
@@ -77,6 +78,7 @@ func EncodeWelcomePayload(teamInfo *slack.Info, channel *slack.Channel, username
 		Username: username,
 		Users:    users,
 		Channels: channels,
+		Emoji:    customEmoji,
 	}
 	return encode(tm)
 

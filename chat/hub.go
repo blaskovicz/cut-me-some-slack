@@ -32,7 +32,8 @@ type Hub struct {
 	// TODO support multiple here
 	slackChannel *slack.Channel
 
-	slackInfo *slack.Info
+	slackInfo   *slack.Info
+	customEmoji map[string]string
 }
 
 func NewHub(cfg *Config) (*Hub, error) {
@@ -60,6 +61,11 @@ func (h *Hub) loadSlackInfo(allowedChannels string) error {
 	channels, err := h.slack.GetChannels(true)
 	if err != nil {
 		return err
+	}
+
+	h.customEmoji, err = h.slack.GetEmoji()
+	if err != nil {
+		return fmt.Errorf("Couldn't load emojis: %s", err)
 	}
 
 	for _, c := range channels {
@@ -163,7 +169,7 @@ func (h *Hub) previousMessages() [][]byte {
 	return previous
 }
 func (h *Hub) welcomePayload(c *Client) []byte {
-	return EncodeWelcomePayload(h.slackInfo, h.slackChannel, c.Username)
+	return EncodeWelcomePayload(h.slackInfo, h.slackChannel, h.customEmoji, c.Username)
 }
 func (h *Hub) handleSlackEvent(msg slack.RTMEvent) {
 	switch ev := msg.Data.(type) {
