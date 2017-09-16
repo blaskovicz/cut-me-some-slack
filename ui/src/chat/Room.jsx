@@ -42,10 +42,21 @@ export default class Room extends Component {
       onStateChange = (oldState, newState) => this.handleConnectionStateChange(oldState, newState);
     })());
   }
-
+  componentDidMount() {
+    const { slack: { channel } } = this.state;
+    if (!channel) return;
+    // console.log('[room.component-did-mount] requesting history for channel', channel);
+    Api.historicalMessageRequest(channel.id);
+  }
   componentDidUpdate(prevProps, prevState) {
     const prevMessageTs = prevState.messageTs;
-    const { messageTs } = this.state;
+    const prevChannel = prevState.slack.channel;
+    const { messageTs, slack: { channel } } = this.state;
+    // switched or loaded channels, backfill messages
+    if ((channel && !prevChannel) || (channel && prevChannel && prevChannel.id !== channel.id)) {
+      // console.log('[room.component-did-update] requesting history for channel', channel, ', was', prevChannel);
+      Api.historicalMessageRequest(channel.id);
+    }
     // if we didn't append a message to our list, don't scroll
     if (messageTs === prevMessageTs) {
       // console.log('[room.component-did-update] state changed but messageTs is the same');
@@ -79,9 +90,9 @@ export default class Room extends Component {
     this.setState({ [e.target.name]: e.target.value });
   }
   pushOutboundMessage() {
-    const { outboundMessage } = this.state;
-    if (outboundMessage === '') return;
-    Api.sendMessage(outboundMessage);
+    const { outboundMessage, slack: { channel } } = this.state;
+    if (outboundMessage === '' || !channel) return;
+    Api.sendMessage(outboundMessage, channel.id);
     window.scrollTo(0, document.body.scrollHeight);
     this.setState({ outboundMessage: '' });
   }
@@ -101,15 +112,21 @@ export default class Room extends Component {
   }
 
   viewUnreadMessages() {
+    this.setState({ unread: null });
     window.scrollTo(0, document.body.scrollHeight);
   }
 
   handleMessage(msg) {
     switch (msg.type) {
       case 'team-info': {
+        let channel;
         const channels = {};
         msg.channels.forEach(c => {
           channels[c.id] = c;
+          // TODO route param
+          if (c.name === (process.env.REACT_APP_SLACK_CHANNEL || 'api-testing')) {
+            channel = c;
+          }
         });
         const users = {};
         msg.users.forEach(u => {
@@ -117,10 +134,10 @@ export default class Room extends Component {
         });
         this.setState({
           slack: {
-            channel: msg.channel,
             slack: msg.slack,
             username: msg.username,
             users,
+            channel: this.state.slack.channel || channel,
             channels,
             emoji: msg.emoji,
           },
@@ -128,7 +145,7 @@ export default class Room extends Component {
         break;
       }
       case 'message': {
-        const { messages, unread, startTs } = this.state;
+        const { messages, unread, startTs, slack: { channel } } = this.state;
         // TODO edits, emoji, deletes, sorting, etc
 
         // we got an invalid or old message, drop it.
@@ -141,6 +158,14 @@ export default class Room extends Component {
           // console.log('[room.handle-message] dropping old message', msg);
           return;
         }
+
+        const parsedMessageTs = moment(msg.ts * 1000);
+        // message since we loaded the page, and in a different channel
+        if (parsedMessageTs > startTs && channel && msg.channel.id !== channel.id) {
+          // eslint-disable-next-line no-console
+          // console.log('[room.handle-message] dropping message in different channel', msg);
+          return;
+        }
         messages.push(msg);
         let newUnreads = unread;
         // if we got a message after our initial payload, it can be 'unread.'
@@ -148,7 +173,6 @@ export default class Room extends Component {
         // if we're not scrolled to the bottom, append to unreads.
         // once we scroll to the bottom or click the message, mark as read.
         // otherwise, clear unreads.
-        const parsedMessageTs = moment(msg.ts * 1000);
         if (startTs < parsedMessageTs && (!unread || unread.since < parsedMessageTs)) {
           if (unread) {
             newUnreads.count += 1;
@@ -193,7 +217,7 @@ export default class Room extends Component {
             <h4 className="text-muted"><span id="header-slack">{slack}</span> Slack</h4>
             <h5 className="text-muted">
               <span id="header-username">@{username}</span>{' in '}
-              <span id="header-channel">#{channel}</span>
+              <span id="header-channel" title={channel.id}>#{channel.name}</span>
             </h5>
             {unread &&
               <span
@@ -232,10 +256,10 @@ export default class Room extends Component {
             />
             <button
               style={{ width: '20%', verticalAlign: 'top' }}
-              disabled={outboundMessage === ''}
+              disabled={!channel || outboundMessage === ''}
               id="message-submit"
               type="button"
-              className={`btn btn-${outboundMessage === '' ? 'secondary' : 'primary'}`}
+              className={`btn btn-${(!channel || outboundMessage === '') ? 'secondary' : 'primary'}`}
               onClick={pushOutboundMessage}
             >
               Send

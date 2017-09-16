@@ -100,8 +100,11 @@ class Api {
       if (typeof f === 'function') f(...args);
     });
   }
-  sendMessage(text) {
-    this.sock.send(JSON.stringify({ text, type: 'message' }));
+  sendMessage(text, channel) {
+    this.sock.send(JSON.stringify({ text, type: 'message', channel_id: channel }));
+  }
+  historicalMessageRequest(channel) {
+    this.sock.send(JSON.stringify({ type: 'history', channel_id: channel }));
   }
 }
 
