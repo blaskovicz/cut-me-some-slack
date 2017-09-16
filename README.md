@@ -12,6 +12,7 @@ To start the React development server:
 
 ```
 $ yarn install
+$ # Optionally, export REACT_APP_BACKEND_URI=ws://otherhost:otherport/stream 
 $ PORT=3001 yarn start
 ```
 
