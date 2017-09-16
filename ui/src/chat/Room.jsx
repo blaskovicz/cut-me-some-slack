@@ -3,6 +3,7 @@ import React, { Component } from 'react';
 import moment from 'moment';
 import Message from './Message';
 import Api, { ApiListener } from '../lib/api';
+import { getScroll } from '../lib/document';
 
 export default class Room extends Component {
 
@@ -34,6 +35,18 @@ export default class Room extends Component {
       onMessage = msg => this.handleMessage(msg);
       onStateChange = (oldState, newState) => this.handleConnectionStateChange(oldState, newState);
     })());
+  }
+
+  componentDidUpdate() {
+    const [, y] = getScroll();
+    // if user is 85% or greater scrolled to the bottom, give them the new message...
+    const scrollPerc = (100 / document.body.scrollHeight) * y;
+    if (scrollPerc >= 85) {
+      // console.log(`[room] scrolling to bottom (scrolled ${scrollPerc})`);
+      /* eslint-disable no-restricted-globals */
+      scrollTo(0, document.body.scrollHeight);
+      /* eslint-enable no-restricted-globals */
+    }
   }
 
   handleConnectionStateChange(oldState, newState) {

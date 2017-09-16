@@ -18,6 +18,7 @@ export default class Message extends Component {
       }),
     }).isRequired,
   };
+
   parsedMessage() {
     const { msg, users, channels, emoji } = this.props;
     if (!msg.text || msg.parsed) return msg;
