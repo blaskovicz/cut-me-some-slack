@@ -13,7 +13,6 @@ import (
 type teamMessage struct {
 	Type     string            `json:"type"`
 	Slack    string            `json:"slack"`
-	Channel  string            `json:"channel"`
 	Username string            `json:"username"`
 	Users    []chatUser        `json:"users"`
 	Channels []chatChannel     `json:"channels"`
@@ -30,10 +29,19 @@ type chatUser struct {
 	// we have to be careful not to leak private fields
 }
 type chatMessage struct {
-	Type string    `json:"type"`
-	Ts   string    `json:"ts"`
-	Text string    `json:"text"`
-	User *chatUser `json:"user"`
+	Type    string       `json:"type"`
+	Ts      string       `json:"ts"`
+	Text    string       `json:"text"`
+	User    *chatUser    `json:"user"`
+	Channel *chatChannel `json:"channel"`
+}
+
+type ClientMessageHistory struct {
+	ChannelID string
+}
+type ClientMessageSend struct {
+	ChannelID string
+	Text      string
 }
 
 func encode(m interface{}) []byte {
@@ -45,20 +53,34 @@ func encode(m interface{}) []byte {
 	}
 	return buff.Bytes()
 }
-func DecodeClientMessage(c *ClientMessage) (string, error) {
+func DecodeClientMessage(c *ClientMessage) (typedMessage interface{}, err error) {
 	buff := map[string]string{}
-	err := json.NewDecoder(bytes.NewReader(c.Raw)).Decode(&buff)
+	err = json.NewDecoder(bytes.NewReader(c.Raw)).Decode(&buff)
 	if err != nil {
-		return "", err
+		return
 	}
-	if t := buff["type"]; t == "message" {
-		if m := buff["text"]; m != "" {
-			return m, nil
+
+	channelID := buff["channel_id"]
+	if channelID == "" {
+		err = fmt.Errorf("invalid client message received: missing channel_id")
+		return
+	}
+	switch t := buff["type"]; t {
+	case "message":
+		cms := &ClientMessageSend{ChannelID: channelID, Text: buff["text"]}
+		if cms.Text == "" {
+			err = fmt.Errorf("invalid client message received: missing text")
+		} else {
+			typedMessage = cms
 		}
+	case "history":
+		typedMessage = &ClientMessageHistory{ChannelID: channelID}
+	default:
+		err = fmt.Errorf("unknown message type %s received (%v)", t, buff)
 	}
-	return "", nil
+	return
 }
-func EncodeWelcomePayload(teamInfo *slack.Info, channel *slack.Channel, customEmoji map[string]string, username string) []byte {
+func EncodeWelcomePayload(teamInfo *slack.Info, customEmoji map[string]string, username string) []byte {
 	channels := []chatChannel{}
 	if teamInfo.Channels != nil {
 		for _, c := range teamInfo.Channels {
@@ -74,7 +96,6 @@ func EncodeWelcomePayload(teamInfo *slack.Info, channel *slack.Channel, customEm
 	tm := teamMessage{
 		Slack:    teamInfo.Team.Name,
 		Type:     "team-info",
-		Channel:  channel.Name,
 		Username: username,
 		Users:    users,
 		Channels: channels,
@@ -84,7 +105,7 @@ func EncodeWelcomePayload(teamInfo *slack.Info, channel *slack.Channel, customEm
 
 }
 func EncodeMessageEvent(c *slack.Client, m *slack.MessageEvent) []byte {
-	cm := chatMessage{Type: "message", Ts: m.Timestamp, Text: m.Text}
+	cm := chatMessage{Type: "message", Ts: m.Timestamp, Text: m.Text, Channel: &chatChannel{ID: m.Channel}}
 	// TODO ask for users/sigils over the wire
 	if m.SubType == "bot_message" {
 		gravatarURL := fmt.Sprintf("https://www.gravatar.com/avatar/%x?d=retro", md5.Sum([]byte(m.Username)))

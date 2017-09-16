@@ -7,8 +7,8 @@ import (
 
 type Config struct {
 	Slack struct {
-		Token           string `required:"true" env:"SLACK_TOKEN"` //TODO validate scopes
-		AllowedChannels string `default:"api-testing" env:"SLACK_CHANNEL"`
+		Token string `required:"true" env:"SLACK_TOKEN"` //TODO validate scopes
+		// TODO DisallowedChannels string `default:"api-testing" env:"SLACK_CHANNEL"`
 	}
 	Server struct {
 		Domain string `default:"localhost" env:"HEROKU_APP_DOMAIN"`
