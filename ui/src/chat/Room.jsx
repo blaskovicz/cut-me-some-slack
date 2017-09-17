@@ -339,7 +339,8 @@ export default withRouter(class Room extends Component {
                 {channel && (
                   switchingChannels ?
                     <div style={{ display: 'inline-block' }}>
-                      <input onChange={filterSwitchChannels} value={switchChannelText} style={{ border: '0', borderRadius: '5px' }} />
+                      <input onChange={filterSwitchChannels} value={switchChannelText} style={{ border: '0', borderRadius: '10px', paddingLeft: '5px' }} />
+                      <FontAwesome style={{ cursor: 'pointer', marginLeft: '5px', marginTop: '2.5px' }} name="times-circle-o" onClick={toggleSwitchChannels} />
                     </div> :
                     <span
                       style={{ opacity: '0.6' }}
@@ -356,7 +357,6 @@ export default withRouter(class Room extends Component {
                 <div
                   className="channel-picker"
                   style={{}}
-                  onMouseLeave={toggleSwitchChannels}
                 >
                   {Object.keys(channels).map(k => {
                     const channelName = channels[k].name;
