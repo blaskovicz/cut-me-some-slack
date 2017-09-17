@@ -16,6 +16,11 @@
 			"Rev": "8c3362a5e6781e0d1046f1267b3c1f19b2cde334"
 		},
 		{
+			"ImportPath": "github.com/dgrijalva/jwt-go",
+			"Comment": "v3.0.0-17-g2268707",
+			"Rev": "2268707a8f0843315e2004ee4f1d021dc08baedf"
+		},
+		{
 			"ImportPath": "github.com/gorilla/websocket",
 			"Comment": "v1.2.0-6-ga69d9f6",
 			"Rev": "a69d9f6de432e2c6b296a947d8a5ee88f68522cf"
@@ -28,6 +33,10 @@
 			"ImportPath": "github.com/joho/godotenv",
 			"Comment": "v1.1-23-gc9360df",
 			"Rev": "c9360df4d16dc0e391ea2f28da2d31a9ede2e26f"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/mapstructure",
+			"Rev": "21a35fb16463dfb7c8eee579c65d995d95e64d1e"
 		},
 		{
 			"ImportPath": "github.com/nlopes/slack",
