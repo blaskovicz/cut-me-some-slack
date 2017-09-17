@@ -13,7 +13,6 @@ import (
 type teamMessage struct {
 	Type     string            `json:"type"`
 	Slack    string            `json:"slack"`
-	Username string            `json:"username"`
 	Users    []chatUser        `json:"users"`
 	Channels []chatChannel     `json:"channels"`
 	Emoji    map[string]string `json:"emoji"`
@@ -35,7 +34,15 @@ type chatMessage struct {
 	User    *chatUser    `json:"user"`
 	Channel *chatChannel `json:"channel"`
 }
+type authMessage struct {
+	Type    string  `json:"type"`
+	Token   string  `json:"token"`
+	Warning *string `json:"warning"`
+}
 
+type ClientMessageAuth struct {
+	Token string
+}
 type ClientMessageHistory struct {
 	ChannelID string
 }
@@ -60,13 +67,13 @@ func DecodeClientMessage(c *ClientMessage) (typedMessage interface{}, err error)
 		return
 	}
 
-	channelID := buff["channel_id"]
-	if channelID == "" {
-		err = fmt.Errorf("invalid client message received: missing channel_id")
-		return
-	}
 	switch t := buff["type"]; t {
 	case "message":
+		channelID := buff["channel_id"]
+		if channelID == "" {
+			err = fmt.Errorf("invalid client message received: missing channel_id")
+			return
+		}
 		cms := &ClientMessageSend{ChannelID: channelID, Text: buff["text"]}
 		if cms.Text == "" {
 			err = fmt.Errorf("invalid client message received: missing text")
@@ -74,13 +81,20 @@ func DecodeClientMessage(c *ClientMessage) (typedMessage interface{}, err error)
 			typedMessage = cms
 		}
 	case "history":
+		channelID := buff["channel_id"]
+		if channelID == "" {
+			err = fmt.Errorf("invalid client message received: missing channel_id")
+			return
+		}
 		typedMessage = &ClientMessageHistory{ChannelID: channelID}
+	case "auth":
+		typedMessage = &ClientMessageAuth{Token: buff["token"]}
 	default:
 		err = fmt.Errorf("unknown message type %s received (%v)", t, buff)
 	}
 	return
 }
-func EncodeWelcomePayload(teamInfo *slack.Info, customEmoji map[string]string, username string) []byte {
+func EncodeWelcomePayload(teamInfo *slack.Info, customEmoji map[string]string) []byte {
 	channels := []chatChannel{}
 	if teamInfo.Channels != nil {
 		for _, c := range teamInfo.Channels {
@@ -96,7 +110,6 @@ func EncodeWelcomePayload(teamInfo *slack.Info, customEmoji map[string]string, u
 	tm := teamMessage{
 		Slack:    teamInfo.Team.Name,
 		Type:     "team-info",
-		Username: username,
 		Users:    users,
 		Channels: channels,
 		Emoji:    customEmoji,
@@ -117,4 +130,7 @@ func EncodeMessageEvent(c *slack.Client, m *slack.MessageEvent) []byte {
 		}
 	}
 	return encode(cm)
+}
+func EncodeAuthMessage(token string, warning *string) []byte {
+	return encode(authMessage{Type: "auth", Token: token, Warning: warning})
 }

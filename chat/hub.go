@@ -30,17 +30,20 @@ type Hub struct {
 	// once we're up and running
 	slackConnected chan interface{}
 
+	// for jwt hs256 hmac signing
+	jwtSecret []byte
+
 	// Slack RTM Client
 	slack *slack.Client
 
-	messageTs string
-
+	// information pushed during welcome
 	slackInfo   *slack.Info
 	customEmoji map[string]string
 }
 
 func NewHub(cfg *Config) (*Hub, error) {
 	h := &Hub{
+		jwtSecret:      []byte(cfg.Server.JWTSecret),
 		slack:          slack.New(cfg.Slack.Token),
 		inbox:          make(chan *ClientMessage),
 		broadcast:      make(chan []byte),
@@ -136,27 +139,63 @@ func (h *Hub) handleInbox(c *ClientMessage) {
 			log.Printf("error: no channel found matching %s\n", m.ChannelID)
 			return
 		}
-		log.Printf("sending previous messages for channel %s to client %s\n", channelID, c.Client.Username)
+		log.Printf("sending previous messages for channel %s to client\n", channelID)
 		for _, prevMessage := range h.previousMessages(channelID) {
 			c.Client.send <- prevMessage
 		}
 	case *ClientMessageSend:
-		channelID := h.resolveSlackChannel(m.ChannelID)
-		if channelID == "" {
-			log.Printf("error: no channel found matching %s (skipping sending as client %s)\n", m.ChannelID, c.Client.Username)
+		if c.Client.User == nil {
+			log.Printf("warn: skipping message send because user is un-authed\n")
 			return
 		}
-		log.Printf("sending as client %s to %s\n", c.Client.Username, channelID)
-		gravatarURL := fmt.Sprintf("https://www.gravatar.com/avatar/%x?d=retro", md5.Sum([]byte(c.Client.Username)))
+		channelID := h.resolveSlackChannel(m.ChannelID)
+		if channelID == "" {
+			log.Printf("error: no channel found matching %s (skipping sending as client %s)\n", m.ChannelID, c.Client.User.Username)
+			return
+		}
+		log.Printf("sending as client %s to %s\n", c.Client.User.Username, channelID)
+		gravatarURL := fmt.Sprintf("https://www.gravatar.com/avatar/%x?d=retro", md5.Sum([]byte(c.Client.User.Username)))
 		_, _, err = h.slack.PostMessage(channelID, m.Text, slack.PostMessageParameters{
-			Username: c.Client.Username,
+			Username: c.Client.User.Username,
 			IconURL:  gravatarURL,
 		})
 		if err != nil {
 			log.Printf("error: failed to send - %s\n", err)
 		}
+	case *ClientMessageAuth:
+		if m.Token == "" {
+			// generate new identity
+			// TODO make sure identity isn't already in use for anon sockets
+			user, signedToken, err := generateSignedJWT(h.jwtSecret)
+			if err != nil {
+				log.Printf("error: failed to generate new token on auth request - %s\n", err)
+				return
+			}
+			log.Printf("sending new identity %s to client\n", user.Username)
+			c.Client.send <- EncodeAuthMessage(signedToken, nil)
+		} else {
+			// check provided identity, optionally generating a new jwt
+			user, _, err := verifySignedJWT(h.jwtSecret, m.Token)
+			if err != nil {
+				// TODO probably just send back an error instead of generating an interm identity
+				log.Printf("error: failed to verify jwt on auth request, generating new token (%s) - %s\n", m.Token, err)
+				user, signedToken, err := generateSignedJWT(h.jwtSecret)
+				if err != nil {
+					log.Printf("error: failed to generate new token on auth request - %s\n", err)
+					return
+				}
+				log.Printf("sending re-generated identity %s to client\n", user.Username)
+				warn := "invalid identity provided. generated new identity."
+				c.Client.send <- EncodeAuthMessage(signedToken, &warn)
+			} else {
+				// TODO this could be where we extend the exp claim
+				log.Printf("verified token for identity %s\n", user.Username)
+				c.Client.send <- EncodeAuthMessage(m.Token, nil)
+			}
+		}
 	}
 }
+
 func (h *Hub) previousMessages(channelID string) [][]byte {
 	previous := [][]byte{}
 	history, err := h.slack.GetChannelHistory(channelID, slack.NewHistoryParameters())
@@ -180,7 +219,7 @@ func (h *Hub) previousMessages(channelID string) [][]byte {
 	return previous
 }
 func (h *Hub) welcomePayload(c *Client) []byte {
-	return EncodeWelcomePayload(h.slackInfo, h.customEmoji, c.Username)
+	return EncodeWelcomePayload(h.slackInfo, h.customEmoji)
 }
 func (h *Hub) handleSlackEvent(msg slack.RTMEvent) {
 	switch ev := msg.Data.(type) {

@@ -11,8 +11,9 @@ type Config struct {
 		// TODO DisallowedChannels string `default:"api-testing" env:"SLACK_CHANNEL"`
 	}
 	Server struct {
-		Domain string `default:"localhost" env:"HEROKU_APP_DOMAIN"`
-		Port   uint   `default:"3000" env:"PORT"`
+		Domain    string `default:"localhost" env:"HEROKU_APP_DOMAIN"`
+		Port      uint   `default:"3000" env:"PORT"`
+		JWTSecret string `required:"true" env:"JWT_SECRET"` // for hs256 hmac signing
 	}
 }
 

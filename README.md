@@ -19,7 +19,7 @@ To start the React development server:
 ```
 $ yarn install
 $ # Optionally, export REACT_APP_SLACK_CHANNEL=api-testing
-$ # Optionally, export REACT_APP_BACKEND_URI=ws://otherhost:otherport/stream 
+$ # Optionally, export REACT_APP_BACKEND_URI=ws://otherhost:otherport/stream
 $ PORT=3001 yarn start
 ```
 
@@ -42,6 +42,7 @@ $ heroku create my-slack-app
 $ heroku config:set SLACK_TOKEN=xoxp-... # slack token with correct scopes
 $ heroku config:set HEROKU_APP_DOMAIN=my-slack-app.herokuapp.com # domain for websockets
 $ heroku config:set REACT_APP_SLACK_CHANNEL=api-testing # default channel to display
+$ heroku config:set JWT_SECRET=$(uuidgen) # for user identity auth
 $ heroku buildpacks:set heroku/go
 $ heroku buildpacks:add heroku/nodejs
 $ git push heroku master

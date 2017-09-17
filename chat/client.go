@@ -2,14 +2,12 @@ package chat
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
-	randomdata "github.com/Pallinder/go-randomdata"
 	"github.com/gorilla/websocket"
 )
 
@@ -52,6 +50,9 @@ func newWsUpgrader(cfg *Config) *websocket.Upgrader {
 }
 
 // Client is a middleman between the websocket connection and the hub.
+type User struct {
+	Username string `json:"username"`
+}
 type Client struct {
 	hub *Hub
 
@@ -61,7 +62,7 @@ type Client struct {
 	// Buffered channel of outbound messages.
 	send chan []byte
 
-	Username string // TODO oauth/auth0
+	User *User
 }
 
 type ClientMessage struct {
@@ -150,10 +151,10 @@ func ServeWs(cfg *Config, hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	client := &Client{
-		Username: fmt.Sprintf("%s-%s-%d", randomdata.Adjective(), randomdata.Noun(), randomdata.Number(5000)),
-		hub:      hub,
-		conn:     conn,
-		send:     make(chan []byte, 256),
+		User: nil, // initially, we don't know who they are
+		hub:  hub,
+		conn: conn,
+		send: make(chan []byte, 256),
 	}
 	client.hub.register <- client
 
