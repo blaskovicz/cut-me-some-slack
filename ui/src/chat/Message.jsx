@@ -27,7 +27,7 @@ export default class Message extends Component {
     let endIndex = -1;
     let labelIndex = -1;
     let emojiIndex = -1;
-    for (let i = 0; i < msg.text.length; i++) {
+    for (let i = 0; i < msg.text.length; i += 1) {
       const charAt = msg.text[i];
       if (charAt === '<') {
         startIndex = i;

@@ -1,3 +1,4 @@
+import jwtDecode from 'jwt-decode';
 import { WS_URI } from './env';
 
 // TODO wrapper around events and reg/unreg
@@ -77,6 +78,7 @@ class Api {
   }
   onOpen(...args) {
     this.stateChange();
+    this.sendAuthMessage();
     this.listeners.forEach(l => {
       const f = l.onOpen;
       if (typeof f === 'function') f(...args);
@@ -86,7 +88,21 @@ class Api {
     if (typeof e.data !== 'string') return;
     e.data.split('\n').forEach(rawMessage => {
       if (rawMessage === '') return;
-      const msg = JSON.parse(rawMessage);
+      let msg = JSON.parse(rawMessage);
+      // if it's an auth response, handle that here
+      if (msg.type === 'auth') {
+        const jwt = jwtDecode(msg.token);
+        // eslint-disable-next-line no-console
+        console.log(`[api.on-message] got auth response, now user ${jwt.user.username}`,
+          (msg.warning ? `(warning ${msg.warning})` : ''),
+        );
+        localStorage.setItem('jwt', msg.token);
+
+        // pre-process message
+        msg = { type: 'auth', user: jwt.user };
+      }
+
+      // otherwise, let our attached listeners handle it
       this.listeners.forEach(l => {
         const f = l.onMessage;
         if (typeof f === 'function') f(msg);
@@ -99,6 +115,24 @@ class Api {
       const f = l.onClose;
       if (typeof f === 'function') f(...args);
     });
+  }
+  sendAuthMessage() {
+    const token = localStorage.getItem('jwt');
+    if (token) {
+      const jwt = jwtDecode(token);
+      if (jwt && jwt.user) {
+        // eslint-disable-next-line no-console
+        console.log(`[api.send-auth-message] requesting auth for user ${jwt.user.username}`);
+      } else {
+        // eslint-disable-next-line no-console
+        console.log('[api.send-auth-message] requesting auth with malformed token', token, ', parsed as', jwt);
+      }
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('[api.send-auth-message] sending anonymous auth request');
+    }
+
+    this.sock.send(JSON.stringify({ type: 'auth', token }));
   }
   sendMessage(text, channel) {
     this.sock.send(JSON.stringify({ text, type: 'message', channel_id: channel }));

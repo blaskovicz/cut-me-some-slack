@@ -18,7 +18,7 @@ export default class Room extends Component {
       slack: {
         channel: '',
         slack: '', // team
-        username: '',
+        user: null,
         users: {},
         channels: {},
         emoji: {},
@@ -118,6 +118,12 @@ export default class Room extends Component {
 
   handleMessage(msg) {
     switch (msg.type) {
+      case 'auth': {
+        const { slack } = this.state;
+        slack.user = msg.user;
+        this.setState({ slack });
+        break;
+      }
       case 'team-info': {
         let channel;
         const channels = {};
@@ -135,7 +141,6 @@ export default class Room extends Component {
         this.setState({
           slack: {
             slack: msg.slack,
-            username: msg.username,
             users,
             channel: this.state.slack.channel || channel,
             channels,
@@ -209,24 +214,36 @@ export default class Room extends Component {
 
   render() {
     const { handleChange, pushOutboundMessage, handleEnter, viewUnreadMessages } = this;
-    const { unread, slack: { channel, slack, emoji, username, users, channels }, messages, outboundMessage, connectionState, connectionChangeTime } = this.state;
+    const { unread, slack: { channel, slack, emoji, user, users, channels }, messages, outboundMessage, connectionState, connectionChangeTime } = this.state;
     return (
       <div>
         <div style={{ position: 'sticky', left: '0', top: '0', right: '0', zIndex: 1, background: '#fff' }} className="container">
           <div className="header" style={{ borderBottom: '1px solid #eee' }}>
-            <h4 className="text-muted"><span id="header-slack">{slack}</span> Slack</h4>
+            <h4 className="text-muted">
+              {slack && <span id="header-slack">{slack}</span>}
+              {slack && ' Slack'}
+            </h4>
             <h5 className="text-muted">
-              <span id="header-username">@{username}</span>{' in '}
-              <span id="header-channel" title={channel.id}>#{channel.name}</span>
+              {user && <span id="header-username">@{user.username}</span>}
+              {user && channel && ' in '}
+              {channel && <span id="header-channel" title={channel.id}>#{channel.name}</span>}
             </h5>
             {unread &&
               <span
                 onClick={viewUnreadMessages}
-                style={{ cursor: 'pointer', width: '100%' }}
+                style={{ cursor: 'pointer', width: '100%', display: 'block' }}
                 className="badge badge-pill badge-primary"
               >
-                {unread.count} New Messages Since {unread.since.format()}
+                {unread.count} New Messages Since {unread.since.format('MMM Do, h:mm a')}
                 <FontAwesome style={{ marginLeft: '20px' }} name="times-circle-o" />
+              </span>
+            }
+            {connectionState !== null && connectionState !== WebSocket.OPEN &&
+              <span
+                className="badge badge-pill badge-warning"
+                style={{ width: '100%', display: 'block' }}
+              >
+                <i>Re-establishing connection to Slack (since {connectionChangeTime.format('MMM Do, h:mm a')}).</i>
               </span>
             }
           </div>
@@ -235,11 +252,6 @@ export default class Room extends Component {
           <div className="messages" style={{ marginBottom: '20px' }}>
             {messages.map(msg =>
               <Message emoji={emoji} key={msg.ts} users={users} channels={channels} msg={msg} />)}
-            {(connectionState !== null && connectionState !== WebSocket.OPEN) ?
-              <div className="alert alert-warning" role="alert">
-                <i>Re-establishing connection to Slack (since {connectionChangeTime.format()}).</i>
-              </div> : ''
-            }
           </div>
         </div>
         <div style={{ height: '50px', position: 'fixed', left: '0', bottom: '0', right: '0', zIndex: 1, background: '#fff' }} className="container">
