@@ -13,6 +13,7 @@ import (
 type teamMessage struct {
 	Type     string            `json:"type"`
 	Slack    string            `json:"slack"`
+	Icon     string            `json:"icon"`
 	Users    []chatUser        `json:"users"`
 	Channels []chatChannel     `json:"channels"`
 	Emoji    map[string]string `json:"emoji"`
@@ -94,21 +95,22 @@ func DecodeClientMessage(c *ClientMessage) (typedMessage interface{}, err error)
 	}
 	return
 }
-func EncodeWelcomePayload(teamInfo *slack.Info, customEmoji map[string]string) []byte {
+func EncodeWelcomePayload(slackInfo *slack.Info, customEmoji map[string]string, teamInfo *slack.TeamInfo) []byte {
 	channels := []chatChannel{}
-	if teamInfo.Channels != nil {
-		for _, c := range teamInfo.Channels {
+	if slackInfo.Channels != nil {
+		for _, c := range slackInfo.Channels {
 			channels = append(channels, chatChannel{ID: c.ID, Name: c.Name})
 		}
 	}
 	users := []chatUser{}
-	if teamInfo.Users != nil {
-		for _, u := range teamInfo.Users {
+	if slackInfo.Users != nil {
+		for _, u := range slackInfo.Users {
 			users = append(users, chatUser{Username: u.Name, Avatar: u.Profile.ImageOriginal, ID: u.ID})
 		}
 	}
 	tm := teamMessage{
-		Slack:    teamInfo.Team.Name,
+		Slack:    teamInfo.Name,
+		Icon:     teamInfo.Icon["image_88"].(string),
 		Type:     "team-info",
 		Users:    users,
 		Channels: channels,

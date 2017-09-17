@@ -38,6 +38,7 @@ type Hub struct {
 
 	// information pushed during welcome
 	slackInfo   *slack.Info
+	teamInfo    *slack.TeamInfo
 	customEmoji map[string]string
 }
 
@@ -64,7 +65,11 @@ func (h *Hub) loadSlackInfo() {
 	var err error
 	h.customEmoji, err = h.slack.GetEmoji()
 	if err != nil {
-		log.Printf("error: couldn't load emojis: %s", err)
+		log.Printf("error: couldn't load emojis: %s\n", err)
+	}
+	h.teamInfo, err = h.slack.GetTeamInfo()
+	if err != nil {
+		log.Printf("error: couldn't load extra team info: %s\n", err)
 	}
 }
 
@@ -222,7 +227,7 @@ func (h *Hub) previousMessages(channelID string) [][]byte {
 	return previous
 }
 func (h *Hub) welcomePayload(c *Client) []byte {
-	return EncodeWelcomePayload(h.slackInfo, h.customEmoji)
+	return EncodeWelcomePayload(h.slackInfo, h.customEmoji, h.teamInfo)
 }
 func (h *Hub) handleSlackEvent(msg slack.RTMEvent) {
 	switch ev := msg.Data.(type) {
