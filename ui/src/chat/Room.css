@@ -1,0 +1,27 @@
+.channel-switcher:hover {
+  padding: 4px;
+  border: 1px solid #fff;
+  border-radius: 5px;
+  margin: -4px;
+  cursor:pointer;
+}
+.channel-picker {
+  height: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  color: rgb(172,178,184);
+  border: 1px solid #fff;
+  margin-top: 10px;  
+}
+.channel-picker-row {
+  padding: 5px;
+}
+.channel-picker-row.current-channel {
+  background-color: rgb(102, 152, 200);
+  color: #fff;
+}
+.channel-picker-row:hover {
+  background: #4A5664;
+  cursor: pointer;
+}
