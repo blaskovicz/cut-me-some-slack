@@ -18,6 +18,7 @@ export default class Room extends Component {
       slack: {
         channel: '',
         slack: '', // team
+        icon: '',
         user: null,
         users: {},
         channels: {},
@@ -141,6 +142,7 @@ export default class Room extends Component {
         this.setState({
           slack: {
             slack: msg.slack,
+            icon: msg.icon,
             users,
             channel: this.state.slack.channel || channel,
             channels,
@@ -150,6 +152,7 @@ export default class Room extends Component {
         break;
       }
       case 'message': {
+        // TODO there's an issue here with missing dropped messages on reconnect
         const { messages, unread, startTs, slack: { channel } } = this.state;
         // TODO edits, emoji, deletes, sorting, etc
 
@@ -214,47 +217,63 @@ export default class Room extends Component {
 
   render() {
     const { handleChange, pushOutboundMessage, handleEnter, viewUnreadMessages } = this;
-    const { unread, slack: { channel, slack, emoji, user, users, channels }, messages, outboundMessage, connectionState, connectionChangeTime } = this.state;
+    const { unread, slack: { channel, icon, slack, emoji, user, users, channels }, messages, outboundMessage, connectionState, connectionChangeTime } = this.state;
     return (
-      <div>
-        <div style={{ position: 'sticky', left: '0', top: '0', right: '0', zIndex: 1, background: '#fff' }} className="container">
-          <div className="header" style={{ borderBottom: '1px solid #eee' }}>
-            <h4 className="text-muted">
-              {slack && <span id="header-slack">{slack}</span>}
-              {slack && ' Slack'}
-            </h4>
-            <h5 className="text-muted">
-              {user && <span id="header-username">@{user.username}</span>}
-              {user && channel && ' in '}
-              {channel && <span id="header-channel" title={channel.id}>#{channel.name}</span>}
-            </h5>
-            {unread &&
-              <span
-                onClick={viewUnreadMessages}
-                style={{ cursor: 'pointer', width: '100%', display: 'block' }}
-                className="badge badge-pill badge-primary"
-              >
-                {unread.count} New Messages Since {unread.since.format('MMM Do, h:mm a')}
-                <FontAwesome style={{ marginLeft: '20px' }} name="times-circle-o" />
-              </span>
-            }
-            {connectionState !== null && connectionState !== WebSocket.OPEN &&
-              <span
-                className="badge badge-pill badge-warning"
-                style={{ width: '100%', display: 'block' }}
-              >
-                <i>Re-establishing connection to Slack (since {connectionChangeTime.format('MMM Do, h:mm a')}).</i>
-              </span>
-            }
+      <div style={{ background: '#303E4D' }}>
+        <div style={{ position: 'sticky', left: '0', top: '0', right: '0', zIndex: 1, background: '#303E4D' }} className="container">
+          <div className="header" style={{ color: '#fff', borderBottom: '1px solid #000', paddingTop: '5px', paddingBottom: '5px' }}>
+            <div style={{ width: '64px', display: 'inline-block', verticalAlign: 'top', marginRight: '5px' }}>
+              {icon &&
+                <img
+                  src={icon}
+                  alt="team icon"
+                  style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '5px',
+                  }}
+                  className="card-image"
+                />
+              }
+            </div>
+            <div style={{ width: '75%', display: 'inline-block', verticalAlign: 'top' }}>
+              <h4>
+                {slack && <span>{slack}</span>}
+                {slack && ' Slack'}
+              </h4>
+              <h5 style={{ opacity: '0.6' }}>
+                {user && <span>@{user.username}</span>}
+                {user && channel && ' in '}
+                {channel && <span title={channel.id}>#{channel.name}</span>}
+              </h5>
+              {unread &&
+                <span
+                  onClick={viewUnreadMessages}
+                  style={{ cursor: 'pointer', width: '100%', display: 'block' }}
+                  className="badge badge-pill badge-primary"
+                >
+                  {unread.count} New Messages Since {unread.since.format('MMM Do, h:mm a')}
+                  <FontAwesome style={{ marginLeft: '20px' }} name="times-circle-o" />
+                </span>
+              }
+              {connectionState !== null && connectionState !== WebSocket.OPEN &&
+                <span
+                  className="badge badge-pill badge-warning"
+                  style={{ width: '100%', display: 'block' }}
+                >
+                  <i>Re-establishing connection to Slack (since {connectionChangeTime.format('MMM Do, h:mm a')}).</i>
+                </span>
+              }
+            </div>
           </div>
         </div>
-        <div style={{ paddingBottom: '40px', paddingTop: '40px' }} className="container">
+        <div style={{ paddingBottom: '40px', paddingTop: '20px' }} className="container">
           <div className="messages" style={{ marginBottom: '20px' }}>
             {messages.map(msg =>
               <Message emoji={emoji} key={msg.ts} users={users} channels={channels} msg={msg} />)}
           </div>
         </div>
-        <div style={{ height: '50px', position: 'fixed', left: '0', bottom: '0', right: '0', zIndex: 1, background: '#fff' }} className="container">
+        <div style={{ height: '50px', position: 'fixed', left: '0', bottom: '0', right: '0', zIndex: 1, background: '#303E4D', paddingBottom: '10px' }} className="container">
           <div id="message-new-controls">
             <input
               style={{ display: 'inline-block', width: '80%', verticalAlign: 'top' }}
