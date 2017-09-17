@@ -172,6 +172,7 @@ func (h *Hub) handleInbox(c *ClientMessage) {
 				return
 			}
 			log.Printf("sending new identity %s to client\n", user.Username)
+			c.Client.User = user
 			c.Client.send <- EncodeAuthMessage(signedToken, nil)
 		} else {
 			// check provided identity, optionally generating a new jwt
@@ -186,10 +187,12 @@ func (h *Hub) handleInbox(c *ClientMessage) {
 				}
 				log.Printf("sending re-generated identity %s to client\n", user.Username)
 				warn := "invalid identity provided. generated new identity."
+				c.Client.User = user
 				c.Client.send <- EncodeAuthMessage(signedToken, &warn)
 			} else {
 				// TODO this could be where we extend the exp claim
 				log.Printf("verified token for identity %s\n", user.Username)
+				c.Client.User = user
 				c.Client.send <- EncodeAuthMessage(m.Token, nil)
 			}
 		}
