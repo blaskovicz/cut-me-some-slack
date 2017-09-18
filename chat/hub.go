@@ -145,7 +145,7 @@ func (h *Hub) handleInbox(c *ClientMessage) {
 			return
 		}
 		log.Printf("sending previous messages for channel %s to client\n", channelID)
-		for _, prevMessage := range h.previousMessages(channelID) {
+		for _, prevMessage := range h.previousMessages(channelID, m.Limit) {
 			c.Client.send <- prevMessage
 		}
 	case *ClientMessageSend:
@@ -204,9 +204,12 @@ func (h *Hub) handleInbox(c *ClientMessage) {
 	}
 }
 
-func (h *Hub) previousMessages(channelID string) [][]byte {
+func (h *Hub) previousMessages(channelID string, limit int) [][]byte {
 	previous := [][]byte{}
-	history, err := h.slack.GetChannelHistory(channelID, slack.NewHistoryParameters())
+	messageQuery := slack.NewHistoryParameters()
+	messageQuery.Count = limit
+	// TODO allow requesting older history upon scroll
+	history, err := h.slack.GetChannelHistory(channelID, messageQuery)
 	if err != nil {
 		log.Printf("error: %s\n", err)
 		return previous

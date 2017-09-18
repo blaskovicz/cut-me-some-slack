@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/nlopes/slack"
 )
@@ -46,6 +47,7 @@ type ClientMessageAuth struct {
 }
 type ClientMessageHistory struct {
 	ChannelID string
+	Limit     int
 }
 type ClientMessageSend struct {
 	ChannelID string
@@ -87,7 +89,17 @@ func DecodeClientMessage(c *ClientMessage) (typedMessage interface{}, err error)
 			err = fmt.Errorf("invalid client message received: missing channel_id")
 			return
 		}
-		typedMessage = &ClientMessageHistory{ChannelID: channelID}
+		var limit int
+		if rawLimit := buff["limit"]; rawLimit != "" {
+			limit, err = strconv.Atoi(rawLimit)
+			if err != nil || limit <= 0 || limit > 1000 {
+				err = fmt.Errorf("invalid client message received: limit has incorrect bounds")
+				return
+			}
+		} else {
+			limit = 10
+		}
+		typedMessage = &ClientMessageHistory{ChannelID: channelID, Limit: limit}
 	case "auth":
 		typedMessage = &ClientMessageAuth{Token: buff["token"]}
 	default:
