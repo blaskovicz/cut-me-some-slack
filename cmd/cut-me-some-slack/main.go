@@ -29,10 +29,18 @@ func main() {
 	}
 	go hub.Run()
 
-	// start server
+	// stream is mapped to websocket conn
 	http.HandleFunc("/stream", startStreamFunc(cfg, hub))
-	http.Handle("/", http.FileServer(http.Dir("ui/build")))
+	// anything starting with /static goes to ui/build dir (eg: /static/foo -> ui/build/static/foo)
+	http.Handle("/static/", http.FileServer(http.Dir("ui/build")))
+	// lastly, re-map anything else directly to the index.html page for single page routing
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// TODO add service-worker.js and any other special files in here that
+		// don't get copied to static if needed
+		http.ServeFile(w, r, "ui/build/index.html")
+	})
 
+	// start server
 	listenAddr := fmt.Sprintf(":%d", cfg.Server.Port)
 	log.Printf("starting server on %s", listenAddr)
 	err = http.ListenAndServe(listenAddr, nil)
