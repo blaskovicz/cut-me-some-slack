@@ -3,6 +3,8 @@ import ReactMarkdown from 'react-markdown';
 import emojione from 'emojione';
 import PropTypes from 'prop-types';
 import moment from 'moment';
+import { Link } from 'react-router-dom';
+import './Message.css';
 
 export default class Message extends Component {
   static propTypes = {
@@ -27,6 +29,8 @@ export default class Message extends Component {
     let endIndex = -1;
     let labelIndex = -1;
     let emojiIndex = -1;
+    // TODO my token replacement logic is flawed since it changes
+    // the string in place but doesnt update its index
     for (let i = 0; i < msg.text.length; i += 1) {
       const charAt = msg.text[i];
       if (charAt === '<') {
@@ -50,7 +54,9 @@ export default class Message extends Component {
           // channel
           const matchedChannel = channels && channels[token.substring(1)];
           if (matchedChannel) {
-            newToken = `#${matchedChannel.name}`;
+            // TODO ugh. newToken = <Link to={`/messages/${matchedChannel.id}`}>#${matchedChannel.name}</Link>;
+            newToken = `[#${matchedChannel.name}](/messages/${matchedChannel.id})`;
+            //console.log(newToken)
           }
         } else if (token[0] === '@') {
           // username
@@ -133,11 +139,9 @@ export default class Message extends Component {
               <span style={{ fontSize: '10pt', color: '#929191' }} title={longTime}>{shortTime}</span>
             </h6>
             {/* TODO links, sigils and whatnot */}
-            <div style={{ whiteSpace: 'pre-wrap', overflow: 'auto' }}>
+            <div style={{ whiteSpace: 'pre-wrap', overflow: 'auto' }} className="room-message">
               {msg.text && <ReactMarkdown source={msg.text} />}
             </div>
-            {/* <!--a href="#" className="card-link">Card link</a-->
-            <!--a href="#" className="card-link">Another link</a-->*/}
           </div>
         </div>
       </div>

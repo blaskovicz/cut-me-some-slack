@@ -105,7 +105,7 @@ export default withRouter(class Room extends Component {
 
   static scrollToBottom() {
     // eslint-disable-next-line no-console
-    console.log('[room.scroll-to-bottom]');
+    // console.log('[room.scroll-to-bottom]');
     window.scrollTo(0, document.body.scrollHeight);
   }
   static pastScrollThreshold() {
@@ -125,6 +125,7 @@ export default withRouter(class Room extends Component {
   }
   handleEnter(e) {
     if (e.key !== 'Enter') return;
+    if (e.nativeEvent.shiftKey) return; // user is pressing shift+enter, allow newline
     this.pushOutboundMessage();
   }
   handleChange(e) {
@@ -157,7 +158,7 @@ export default withRouter(class Room extends Component {
     const { match: { params: { channelID } }, history } = this.props;
     if (newChannel.id === channelID) return;
     // eslint-disable-next-line no-console
-    console.log(`[room.change-channel] changing channel to ${newChannel.id} per user request.`);
+    // console.log(`[room.change-channel] changing channel to ${newChannel.id} per user request.`);
     history.push(`/messages/${newChannel.id}`);
     const { slack } = this.state;
     slack.channel = newChannel;
@@ -188,7 +189,7 @@ export default withRouter(class Room extends Component {
           channels[c.id] = c;
           if (c.name === channelID) {
             // eslint-disable-next-line no-console
-            console.log(`[room.handle-message] user requested #${c.name}; redirecting to id ${c.id}`);
+            // console.log(`[room.handle-message] user requested #${c.name}; redirecting to id ${c.id}`);
             history.push(`/messages/${c.id}`);
             channel = c;
           } else if (c.id === channelID) {
@@ -200,7 +201,7 @@ export default withRouter(class Room extends Component {
           channel = msg.channels[0];
           // TODO grab general channel
           // eslint-disable-next-line no-console
-          console.log(`[room.handle-message] user requested #${channelID} but it wasn't found; redirecting to id ${channel.id}`);
+          // console.log(`[room.handle-message] user requested #${channelID} but it wasn't found; redirecting to id ${channel.id}`);
           history.push(`/messages/${channel.id}`);
         }
 
@@ -274,12 +275,12 @@ export default withRouter(class Room extends Component {
             newUnreads = { count: 1, since: parsedMessageTs };
           }
           // eslint-disable-next-line no-console
-          console.log(
+          /* console.log(
             '[room.handle-message] adding unread message', msg,
             ', new unreads', newUnreads,
             ', startTs=', startTs.format(),
             ', parsedMessageTs=', parsedMessageTs.format(),
-          );
+          ); */
         } else {
           // eslint-disable-next-line no-console
           // console.log('[room.handle-message] adding normal message', msg);
@@ -398,21 +399,40 @@ export default withRouter(class Room extends Component {
             </div>
           </div>
         </div>
-        <div style={{ paddingBottom: '40px', paddingTop: '20px' }} className="container">
+        <div style={{ paddingBottom: '60px', paddingTop: '20px' }} className="container">
           <div className="messages" style={{ marginBottom: '20px' }}>
             {messages.map(msg =>
               <Message emoji={emoji} key={msg.ts} users={users} channels={channels} msg={msg} />)}
+            {messages.length === 0 &&
+              <span
+                className="alert alert-info"
+                style={{ width: '100%', display: 'block' }}
+              >
+                <i>It looks like there's nothing here!</i>
+              </span>
+            }
           </div>
         </div>
-        <div style={{ height: '50px', position: 'fixed', left: '0', bottom: '0', right: '0', zIndex: 1, background: '#303E4D', paddingTop: '5px', paddingBottom: '10px' }} className="container">
+        <div
+          style={{
+            height: '75px',
+            position: 'fixed',
+            left: '0',
+            bottom: '0',
+            right: '0',
+            zIndex: 1,
+            background: '#303E4D',
+            paddingTop: '5px',
+            paddingBottom: '10px',
+          }} className="container"
+        >
           <div id="message-new-controls">
-            <input
-              style={{ display: 'inline-block', width: '80%', verticalAlign: 'top' }}
+            <textarea
+              style={{ height: '38px', padding: '2px', display: 'inline-block', width: '80%', verticalAlign: 'top' }}
               onKeyPress={handleEnter}
               value={outboundMessage}
               onChange={handleChange}
               name="outboundMessage"
-              type="text"
               className="form-control"
               id="message-text"
             />
