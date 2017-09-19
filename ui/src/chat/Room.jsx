@@ -5,7 +5,6 @@ import FontAwesome from 'react-fontawesome';
 import { withRouter } from 'react-router-dom';
 import Message from './Message';
 import Api, { ApiListener } from '../lib/api';
-import { getScroll } from '../lib/document';
 import './Room.css';
 
 export default withRouter(class Room extends Component {
@@ -49,6 +48,7 @@ export default withRouter(class Room extends Component {
     this.viewUnreadMessages = this.viewUnreadMessages.bind(this);
     this.handleMessage = this.handleMessage.bind(this);
     this.handleConnectionStateChange = this.handleConnectionStateChange.bind(this);
+    this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
     this.toggleSwitchChannels = this.toggleSwitchChannels.bind(this);
     this.changeChannel = this.changeChannel.bind(this);
     this.filterSwitchChannels = this.filterSwitchChannels.bind(this);
@@ -79,7 +79,7 @@ export default withRouter(class Room extends Component {
   componentDidUpdate(prevProps, prevState) {
     const prevMessageTs = prevState.messageTs;
     const prevChannel = prevState.slack.channel;
-    const { messageTs, slack: { channel } } = this.state;
+    const { startTs, messageTs, messages, slack: { channel, user } } = this.state;
     // switched or loaded channels, backfill messages
     if (
       (channel && !prevChannel) ||
@@ -94,8 +94,12 @@ export default withRouter(class Room extends Component {
       // console.log('[room.component-did-update] state changed but messageTs is the same');
       return;
     }
-    // if user is past the threshold, give them the new message...
-    if (this.constructor.pastScrollThreshold()) {
+    // if user is past the threshold, or we are backfilling message, or we sent the message, advance our scroll...
+    const parsedMessageTs = moment(messageTs * 1000);
+    if (this.pastScrollThreshold() ||
+      parsedMessageTs.isBefore(startTs) ||
+      (messages.length > 0 && user && messages[messages.length - 1].user.username === user.username)
+    ) {
       // console.log(`[room.component-did-update] scrolling to bottom (scrolled ${scrollPerc})`);
       this.constructor.scrollToBottom();
     } else {
@@ -108,10 +112,14 @@ export default withRouter(class Room extends Component {
     // console.log('[room.scroll-to-bottom]');
     window.scrollTo(0, document.body.scrollHeight);
   }
-  static pastScrollThreshold() {
-    const [, y] = getScroll();
-    const scrollPerc = (100 / document.body.scrollHeight) * y;
-    return scrollPerc >= 85; // 85% down the page
+  pastScrollThreshold() {
+    const { messages } = this.state;
+    const messageCount = messages.length;
+    return (
+      messageCount < 2 ||
+      messages[messageCount - 1].visible ||
+      messages[messageCount - 2].visible
+    );
   }
 
   handleConnectionStateChange(oldState, newState) {
@@ -128,6 +136,17 @@ export default withRouter(class Room extends Component {
     if (e.nativeEvent.shiftKey) return; // user is pressing shift+enter, allow newline
     this.pushOutboundMessage();
   }
+  handleVisibilityChange(msg, visible) {
+    const { messages } = this.state;
+    messages.forEach((m, i) => {
+      if (m.ts === msg.ts) {
+        messages[i].visible = visible;
+        return false;
+      }
+      return true;
+    });
+    this.setState({ messages });
+  }
   handleChange(e) {
     this.setState({ [e.target.name]: e.target.value });
   }
@@ -135,13 +154,12 @@ export default withRouter(class Room extends Component {
     const { outboundMessage, slack: { channel } } = this.state;
     if (outboundMessage === '' || !channel) return;
     Api.sendMessage(outboundMessage, channel.id);
-    this.constructor.scrollToBottom();
     this.setState({ outboundMessage: '' });
   }
 
   onScroll() {
     // if user is past scroll threshold, mark read.
-    if (!this.constructor.pastScrollThreshold()) {
+    if (!this.pastScrollThreshold()) {
       return;
     }
     const { unread } = this.state;
@@ -223,7 +241,7 @@ export default withRouter(class Room extends Component {
       }
       case 'message': {
         // TODO there's an issue here with missing dropped messages on reconnect
-        const { messages, unread, startTs, slack: { channel } } = this.state;
+        const { messages, unread, startTs, slack: { channel, user } } = this.state;
         // TODO edits, emoji, deletes, sorting, etc
 
         // we got an invalid or old message, drop it.
@@ -238,8 +256,8 @@ export default withRouter(class Room extends Component {
         }
 
         const parsedMessageTs = moment(msg.ts * 1000);
-        // message since we loaded the page, and in a different channel
-        if (parsedMessageTs > startTs && channel && msg.channel.id !== channel.id) {
+        // message in a different channel
+        if (channel && msg.channel.id !== channel.id) {
           // eslint-disable-next-line no-console
           // console.log('[room.handle-message] dropping message in different channel', msg);
           return;
@@ -259,15 +277,18 @@ export default withRouter(class Room extends Component {
         }
         messages.push(msg); // TODO better handle out-of-order messages
         let newUnreads = unread;
+        // TODO there is a bug in here wrt a user sending thier own message after switching channels.
+        //
         // if we got a message after our initial payload, it can be 'unread.'
         // make sure that it's not a duplicate.
         // if we're not scrolled to the bottom, append to unreads.
         // once we scroll to the bottom or click the message, mark as read.
         // otherwise, clear unreads.
         if (
-          startTs < parsedMessageTs &&
+          startTs.isBefore(parsedMessageTs) &&
           (!unread || unread.since < parsedMessageTs) &&
-          !this.constructor.pastScrollThreshold()
+          !this.pastScrollThreshold() &&
+          msg.user.username !== user.username
         ) {
           if (unread) {
             newUnreads.count += 1;
@@ -281,15 +302,6 @@ export default withRouter(class Room extends Component {
             ', startTs=', startTs.format(),
             ', parsedMessageTs=', parsedMessageTs.format(),
           ); */
-        } else {
-          // eslint-disable-next-line no-console
-          // console.log('[room.handle-message] adding normal message', msg);
-
-          // if we're still backfilling messages, auto-advance us
-          // eslint-disable-next-line no-lonely-if
-          if (parsedMessageTs < startTs) {
-            this.constructor.scrollToBottom();
-          }
         }
 
         this.setState({
@@ -309,7 +321,7 @@ export default withRouter(class Room extends Component {
 
   render() {
     // TODO show loading while waiting for team info, messages, etc
-    const { handleChange, pushOutboundMessage, handleEnter, viewUnreadMessages, toggleSwitchChannels, filterSwitchChannels, changeChannel } = this;
+    const { handleVisibilityChange, handleChange, pushOutboundMessage, handleEnter, viewUnreadMessages, toggleSwitchChannels, filterSwitchChannels, changeChannel } = this;
     const { switchChannelText, switchingChannels, unread, slack: { channel, icon, slack, emoji, user, users, channels }, messages, outboundMessage, connectionState, connectionChangeTime } = this.state;
     return (
       <div style={{ background: '#303E4D' }}>
@@ -402,7 +414,14 @@ export default withRouter(class Room extends Component {
         <div style={{ paddingBottom: '60px', paddingTop: '20px' }} className="container">
           <div className="messages" style={{ marginBottom: '20px' }}>
             {messages.map(msg =>
-              <Message emoji={emoji} key={msg.ts} users={users} channels={channels} msg={msg} />)}
+              <Message
+                notifyVisible={v => handleVisibilityChange(msg, v)}
+                emoji={emoji}
+                key={msg.ts}
+                users={users}
+                channels={channels}
+                msg={msg} />
+            )}
             {messages.length === 0 &&
               <span
                 className="alert alert-info"

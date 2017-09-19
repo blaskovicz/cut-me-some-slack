@@ -19,7 +19,8 @@
     "react-fontawesome": "^1.6.1",
     "react-markdown": "^2.5.0",
     "react-router-dom": "^4.2.2",
-    "react-scripts": "1.0.11"
+    "react-scripts": "1.0.11",
+    "react-visibility-sensor": "^3.10.1"
   },
   "scripts": {
     "start": "cd ui && react-scripts start",

@@ -3,11 +3,13 @@ import ReactMarkdown from 'react-markdown';
 import emojione from 'emojione';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { Link } from 'react-router-dom';
+import VisibilitySensor from 'react-visibility-sensor';
+// import { Link } from 'react-router-dom';
 import './Message.css';
 
 export default class Message extends Component {
   static propTypes = {
+    notifyVisible: PropTypes.func.isRequired,
     users: PropTypes.object,
     channels: PropTypes.object,
     emoji: PropTypes.object,
@@ -56,7 +58,7 @@ export default class Message extends Component {
           if (matchedChannel) {
             // TODO ugh. newToken = <Link to={`/messages/${matchedChannel.id}`}>#${matchedChannel.name}</Link>;
             newToken = `[#${matchedChannel.name}](/messages/${matchedChannel.id})`;
-            //console.log(newToken)
+            // console.log(newToken)
           }
         } else if (token[0] === '@') {
           // username
@@ -112,39 +114,42 @@ export default class Message extends Component {
     return msg;
   }
   render() {
+    const { notifyVisible } = this.props;
     const msg = this.parsedMessage();
     const shortTime = moment(msg.ts * 1000).format('MMM Do, h:mm a');
     const longTime = moment(msg.ts * 1000).format();
     return (
-      <div key={msg.ts} className="card" style={{ marginTop: '5px' }}>
-        <div className="card-block" style={{ padding: '.5rem' }}>
-          <div style={{ display: 'inline-block', width: '80px', verticalAlign: 'top' }}>
-            {msg.user && msg.user.avatar_url &&
-              <img
-                src={msg.user.avatar_url}
-                alt="avatar"
-                style={{
-                  width: '80px',
-                  height: '80px',
-                  marginRight: '5px',
-                  borderRadius: '5px',
-                }}
-                className="card-image"
-              />
-            }
-          </div>
-          <div style={{ display: 'inline-block', width: '75%', verticalAlign: 'top', marginLeft: '10px' }}>
-            <h6 className="card-title">
-              {msg.user && <span style={{ marginRight: '5px', fontWeight: 'bold' }}>{msg.user.username}</span>}
-              <span style={{ fontSize: '10pt', color: '#929191' }} title={longTime}>{shortTime}</span>
-            </h6>
-            {/* TODO links, sigils and whatnot */}
-            <div style={{ whiteSpace: 'pre-wrap', overflow: 'auto' }} className="room-message">
-              {msg.text && <ReactMarkdown source={msg.text} />}
+      <VisibilitySensor scrollDelay={1000} onChange={visible => notifyVisible(visible)} >
+        <div key={msg.ts} className="card" style={{ marginTop: '5px' }}>
+          <div className="card-block" style={{ padding: '.5rem' }}>
+            <div style={{ display: 'inline-block', width: '80px', verticalAlign: 'top' }}>
+              {msg.user && msg.user.avatar_url &&
+                <img
+                  src={msg.user.avatar_url}
+                  alt="avatar"
+                  style={{
+                    width: '80px',
+                    height: '80px',
+                    marginRight: '5px',
+                    borderRadius: '5px',
+                  }}
+                  className="card-image"
+                />
+              }
+            </div>
+            <div style={{ display: 'inline-block', width: '75%', verticalAlign: 'top', marginLeft: '10px' }}>
+              <h6 className="card-title">
+                {msg.user && <span style={{ marginRight: '5px', fontWeight: 'bold' }}>{msg.user.username}</span>}
+                <span style={{ fontSize: '10pt', color: '#929191' }} title={longTime}>{shortTime}</span>
+              </h6>
+              {/* TODO links, sigils and whatnot */}
+              <div style={{ whiteSpace: 'pre-wrap', overflow: 'auto' }} className="room-message">
+                {msg.text && <ReactMarkdown source={msg.text} />}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </VisibilitySensor>
     );
   }
 }
