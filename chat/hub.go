@@ -30,6 +30,9 @@ type Hub struct {
 	// once we're up and running
 	slackConnected chan interface{}
 
+	// log slack inbound and outbound messages
+	logMessages bool
+
 	// for jwt hs256 hmac signing
 	jwtSecret []byte
 
@@ -44,6 +47,7 @@ type Hub struct {
 
 func NewHub(cfg *Config) (*Hub, error) {
 	h := &Hub{
+		logMessages:    cfg.Server.LogMessages,
 		jwtSecret:      []byte(cfg.Server.JWTSecret),
 		slack:          slack.New(cfg.Slack.Token),
 		inbox:          make(chan *ClientMessage),
@@ -93,7 +97,9 @@ func (h *Hub) Run() {
 			h.clients[client] = true
 			h.clientCount++
 			log.Printf("client registered (count=%d)\n", h.clientCount)
-			client.send <- h.welcomePayload(client)
+			go func() {
+				client.send <- h.welcomePayload(client)
+			}()
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				h.clientCount--
@@ -102,19 +108,23 @@ func (h *Hub) Run() {
 				close(client.send)
 			}
 		case message := <-h.inbox:
-			h.handleInbox(message)
+			go func() {
+				h.handleInbox(message)
+			}()
 		case message := <-h.broadcast:
 			// mux message to all clients
 			log.Printf("flushing message broadcast to all clients (count=%d)\n", h.clientCount)
-			for client := range h.clients {
-				select {
-				case client.send <- message:
-				default:
-					h.clientCount--
-					close(client.send)
-					delete(h.clients, client)
+			go func() {
+				for client := range h.clients {
+					select {
+					case client.send <- message:
+					default:
+						h.clientCount--
+						close(client.send)
+						delete(h.clients, client)
+					}
 				}
-			}
+			}()
 		}
 	}
 }
@@ -144,7 +154,13 @@ func (h *Hub) handleInbox(c *ClientMessage) {
 			log.Printf("error: no channel found matching %s\n", m.ChannelID)
 			return
 		}
-		log.Printf("sending previous messages for channel %s to client\n", channelID)
+		var username string
+		if c.Client.User != nil {
+			username = c.Client.User.Username
+		} else {
+			username = "<anonymous>"
+		}
+		log.Printf("sending previous messages for channel %s to client %s\n", channelID, username)
 		for _, prevMessage := range h.previousMessages(channelID, m.Limit) {
 			c.Client.send <- prevMessage
 		}
@@ -220,11 +236,11 @@ func (h *Hub) previousMessages(channelID string, limit int) [][]byte {
 	// push oldest -> newest
 	for i := len(history.Messages) - 1; i >= 0; i-- {
 		m := history.Messages[i]
-		// TODO
-		if m.SubType != "" && m.SubType != "bot_message" {
-			//log.Printf("dropping %#v", ev)
+		if !ClientHandlesMessage(&m) {
+			//log.Printf("history %s: dropping %#v", channelID, ev)
 			continue
 		}
+		m.Channel = channelID // channel is unset in slack response, but our client expects it
 		previous = append(previous, EncodeMessageEvent(h.slack, (*slack.MessageEvent)(&m)))
 	}
 	return previous
@@ -253,11 +269,16 @@ func (h *Hub) handleSlackEvent(msg slack.RTMEvent) {
 		}
 
 	case *slack.MessageEvent:
-		if ev.SubType != "" && ev.SubType != "bot_message" {
-			log.Printf("dropping %#v", ev)
+		if !ClientHandlesMessage((*slack.Message)(ev)) {
+			if h.logMessages {
+				log.Printf("message %s: dropping %#v", ev.Channel, ev)
+			}
 			break
 		}
-		h.broadcast <- EncodeMessageEvent(h.slack, (*slack.MessageEvent)(ev))
+		if h.logMessages {
+			log.Printf("message %s: %#v\n", ev.Channel, ev)
+		}
+		h.broadcast <- EncodeMessageEvent(h.slack, ev)
 
 	// TODO periodically update users, emoji, channels, etc and push to client
 	/*case *slack.PresenceChangeEvent:

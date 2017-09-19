@@ -131,6 +131,10 @@ func EncodeWelcomePayload(slackInfo *slack.Info, customEmoji map[string]string, 
 	return encode(tm)
 
 }
+func ClientHandlesMessage(ev *slack.Message) bool {
+	// TODO: handle other types :)
+	return ((ev.SubType == "" || ev.SubType == "bot_message") && ev.Text != "" && ev.Timestamp != "")
+}
 func EncodeMessageEvent(c *slack.Client, m *slack.MessageEvent) []byte {
 	cm := chatMessage{Type: "message", Ts: m.Timestamp, Text: m.Text, Channel: &chatChannel{ID: m.Channel}}
 	// TODO ask for users/sigils over the wire
