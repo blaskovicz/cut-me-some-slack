@@ -67,6 +67,7 @@ func NewHub(cfg *Config) (*Hub, error) {
 
 func (h *Hub) loadSlackInfo() {
 	var err error
+	//h.slack.SetDebug(true)
 	h.customEmoji, err = h.slack.GetEmoji()
 	if err != nil {
 		log.Printf("error: couldn't load emojis: %s\n", err)
@@ -280,16 +281,16 @@ func (h *Hub) handleSlackEvent(msg slack.RTMEvent) {
 		}
 		h.broadcast <- EncodeMessageEvent(h.slack, ev)
 
-	// TODO periodically update users, emoji, channels, etc and push to client
-	/*case *slack.PresenceChangeEvent:
-	    fmt.Printf("Presence Change: %v\n", ev)
+		// TODO periodically update users, emoji, channels, etc and push to client
+		/*case *slack.PresenceChangeEvent:
+		    fmt.Printf("Presence Change: %v\n", ev)
 
-	  case *slack.LatencyReport:
-	    fmt.Printf("Current latency: %v\n", ev.Value)
+		  case *slack.LatencyReport:
+		    fmt.Printf("Current latency: %v\n", ev.Value)
 
-	  case *slack.RTMError:
-	    fmt.Printf("Error: %s\n", ev.Error())
-	*/
+		*/
+	case *slack.RTMError:
+		log.Printf("rmt error: %s\n", ev.Error())
 	case *slack.InvalidAuthEvent:
 		log.Println("rtm error: invalid credentials")
 		break

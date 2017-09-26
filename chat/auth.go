@@ -13,7 +13,7 @@ const TokenVersion = "1"
 const TokenISS = "cut-me-some-slack"
 
 func generateSignedJWT(hmacKey []byte) (*User, string, error) {
-	user := User{Username: fmt.Sprintf("%s-%s-%d", randomdata.Adjective(), randomdata.Noun(), randomdata.Number(5000))}
+	user := User{Username: fmt.Sprintf("anonymous-%s-%d", randomdata.Noun(), randomdata.Number(5000))}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"iss":  TokenISS,
 		"sub":  user.Username,

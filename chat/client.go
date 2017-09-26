@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -38,13 +39,15 @@ func newWsUpgrader(cfg *Config) *websocket.Upgrader {
 		// by default, our upgrader doesn't allow any origin header.
 		// we do the same, but extend to also support localhost or our app domain
 		CheckOrigin: func(r *http.Request) bool {
+			if os.Getenv("SKIP_ORIGIN_CHECK") == "true" {
+				return true
+			}
 			origin := r.Header.Get("Origin")
 			if origin == "" {
 				return true
 			}
 			originURL, err := url.Parse(origin)
 			return err == nil && (strings.HasPrefix(originURL.Host, "localhost:") || originURL.Host == cfg.Server.Domain)
-
 		},
 	}
 }
