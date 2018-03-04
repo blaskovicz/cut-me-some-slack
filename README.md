@@ -1,6 +1,6 @@
 # Cut Me Some Slack!
 > Anonymous Slack web portal. Read and write messages, help-desk style.
-[Chat on the Demo App!](https://cutmesomeslack-demo.carlyzach.com/)
+[Chat on the Demo App!](https://cut-me-some-slack-demo.carlyzach.com/)
 
 ![](cmss-home.png)
 
