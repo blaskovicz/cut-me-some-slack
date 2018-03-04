@@ -1,0 +1,20 @@
+version: '3.3'
+
+services:
+  web:
+    image: 127.0.0.1:5000/cut-me-some-slack
+    environment:
+      - HEROKU_APP_DOMAIN=cut-me-some-slack-demo.carlyzach.com
+    build: .
+    ports:
+      - "5091:5091"
+    secrets:
+      - source: cut-me-some-slack-demo_jwt_secret_v1
+        target: jwt_secret
+      - source: cut-me-some-slack-demo_slack_token_v1
+        target: slack_token
+secrets:
+  cut-me-some-slack-demo_jwt_secret_v1:
+    external: true
+  cut-me-some-slack-demo_slack_token_v1:
+    external: true

@@ -1,6 +1,9 @@
 package chat
 
 import (
+	"fmt"
+
+	swarmed "github.com/blaskovicz/go-swarmed"
 	"github.com/jinzhu/configor"
 	"github.com/joho/godotenv"
 )
@@ -19,12 +22,16 @@ type Config struct {
 }
 
 func LoadConfig() (*Config, error) {
+	err := swarmed.LoadSecrets()
+	if err != nil {
+		return nil, fmt.Errorf("swarmed.LoadConfig: %s", err)
+	}
 	var cfg Config
 
 	// ignore the error
 	godotenv.Load()
 
-	err := configor.Load(&cfg)
+	err = configor.Load(&cfg)
 	if err != nil {
 		return nil, err
 	}

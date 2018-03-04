@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/blaskovicz/cut-me-some-slack",
-	"GoVersion": "go1.8",
+	"GoVersion": "go1.9",
 	"GodepVersion": "v79",
 	"Packages": [
 		"./..."
@@ -14,6 +14,10 @@
 		{
 			"ImportPath": "github.com/Pallinder/go-randomdata",
 			"Rev": "8c3362a5e6781e0d1046f1267b3c1f19b2cde334"
+		},
+		{
+			"ImportPath": "github.com/blaskovicz/go-swarmed",
+			"Rev": "aab60b3f7f685e030aebf7004197d087221f546e"
 		},
 		{
 			"ImportPath": "github.com/dgrijalva/jwt-go",
